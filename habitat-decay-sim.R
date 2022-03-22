@@ -70,12 +70,13 @@ sim <- kwk_transport %>%
 kwk_transport %>% 
   filter(Date >= "1982-05-01", Date <= "1985-05-01") %>%
   mutate(sed_transport = ifelse(is.na(sed_transport), 0, sed_transport), 
-         add_gavel = case_when(
+         add_gravel = case_when(
            Date %in% augmentation_dates ~ 100000, 
            TRUE ~ 0
          ),
          starting_vol = starting_vol,
-         sed_tranport_accum = cumsum(sed_transport))  
+         sed_tranport_accum = cumsum(sed_transport), 
+         current_vol = starting_vol - sed_tranport_accum + add_gravel) %>% View()
 
 
 grid.arrange(sim %>% ggplot(aes(Date, Flow)) + geom_line() + labs(title = "Keswick using Max Scale Down for 40mm"), 
