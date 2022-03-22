@@ -32,6 +32,7 @@ upper_sac_area <- tibble(
     acres = sum(acres, na.rm = TRUE)
   ) 
 
+# START -------------
 
 starting_vol <- 66.9 * (43560) * 2
 
@@ -65,12 +66,16 @@ sim <- kwk_transport %>%
          start_vol = starting_vol,
          current_vol = start_vol - sed_transport_accum)
 
+# WIP 
 kwk_transport %>% 
   filter(Date >= "1982-05-01", Date <= "1985-05-01") %>%
   mutate(sed_transport = ifelse(is.na(sed_transport), 0, sed_transport), 
-         starting_vol = starting_vol, 
-         sed_tranport_accum = cumsum(sed_transport), 
-         sed_tranport_reset = sed_tranport_accum < starting_vol)  
+         add_gavel = case_when(
+           Date %in% augmentation_dates ~ 100000, 
+           TRUE ~ 0
+         ),
+         starting_vol = starting_vol,
+         sed_tranport_accum = cumsum(sed_transport))  
 
 
 grid.arrange(sim %>% ggplot(aes(Date, Flow)) + geom_line() + labs(title = "Keswick using Max Scale Down for 40mm"), 
