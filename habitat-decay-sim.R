@@ -2,7 +2,7 @@ library(tidyverse)
 library(lubridate)
 library(gridExtra)
 
-habitat <- read_csv("data-raw/chinook_habitat_decay_graph.csv", 
+habitat <- read_csv("data/chinook_habitat_decay_graph.csv", 
                     skip = 1, col_names = c("flow", "area", "location"))
 
 habitat %>% distinct(location)
@@ -55,8 +55,7 @@ gravel_augs <- tibble(
   Date = seq.Date(as_date("1980-01-01"), as_date("2000-01-01"), by="1 day")
 ) 
 
-augmentation_dates <- c(as_date("1985-01-01"), as_date("1995-01-01"), as_date("2005-01-01"), 
-                        "1982-01-01", "1981-01-01") %>% 
+augmentation_dates <- c(as_date("1985-01-01"), "1983-01-01") %>% 
   as_date()
 
 sim <- kwk_transport %>% 
@@ -67,6 +66,8 @@ sim <- kwk_transport %>%
          current_vol = start_vol - sed_transport_accum)
 
 # WIP 
+
+
 kwk_transport %>% 
   filter(Date >= "1982-05-01", Date <= "1985-05-01") %>%
   mutate(sed_transport = ifelse(is.na(sed_transport), 0, sed_transport), 
@@ -75,9 +76,7 @@ kwk_transport %>%
            TRUE ~ 0
          ),
          starting_vol = starting_vol,
-         sed_tranport_accum = cumsum(sed_transport), 
-         current_vol = starting_vol - sed_tranport_accum + add_gravel) %>% View()
-
+         current_vol = as.numeric(accumulate2(sed_transport[2:n()], add_gravel[2:n()], ~..1 - ..2 + ..3, .init = starting_vol[1]-sed_transport[1]))) 
 
 grid.arrange(sim %>% ggplot(aes(Date, Flow)) + geom_line() + labs(title = "Keswick using Max Scale Down for 40mm"), 
              sim %>% ggplot(aes(Date, current_vol)) + geom_line() + geom_hline(yintercept = 0) , 
