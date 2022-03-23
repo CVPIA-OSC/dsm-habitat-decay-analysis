@@ -51,11 +51,8 @@ kwk_transport <- kwk_usgs_daily %>%
   select(-agency_cd, -site_no, Flow_cd)
 
 
-gravel_augs <- tibble(
-  Date = seq.Date(as_date("1980-01-01"), as_date("2000-01-01"), by="1 day")
-) 
 
-augmentation_dates <- c(as_date("1985-01-01"), "1983-01-01") %>% 
+augmentation_dates <- c(as_date("1985-01-01"), "1983-01-01", "1983-02-01") %>% 
   as_date()
 
 sim <- kwk_transport %>% 
@@ -68,18 +65,18 @@ sim <- kwk_transport %>%
 # WIP 
 
 
-kwk_transport %>% 
+augmentation_sim <- kwk_transport %>% 
   filter(Date >= "1982-05-01", Date <= "1985-05-01") %>%
   mutate(sed_transport = ifelse(is.na(sed_transport), 0, sed_transport), 
          add_gravel = case_when(
-           Date %in% augmentation_dates ~ 100000, 
+           Date %in% augmentation_dates ~ 1000000, 
            TRUE ~ 0
          ),
          starting_vol = starting_vol,
          current_vol = as.numeric(accumulate2(sed_transport[2:n()], add_gravel[2:n()], ~..1 - ..2 + ..3, .init = starting_vol[1]-sed_transport[1]))) 
 
-grid.arrange(sim %>% ggplot(aes(Date, Flow)) + geom_line() + labs(title = "Keswick using Max Scale Down for 40mm"), 
-             sim %>% ggplot(aes(Date, current_vol)) + geom_line() + geom_hline(yintercept = 0) , 
+grid.arrange(augmentation_sim %>% ggplot(aes(Date, Flow)) + geom_line() + labs(title = "Keswick using Max Scale Down for 40mm"), 
+             augmentation_sim %>% ggplot(aes(Date, current_vol)) + geom_line() + geom_hline(yintercept = 0) , 
              nrow = 2) 
 
 # next steps
