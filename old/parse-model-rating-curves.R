@@ -3,12 +3,12 @@ library(tidyverse)
 d <- read_tsv("data-raw/CrossSectionFluxes/SedimentRatingCurves/SedRatingCurve_RiverMile_283.33.txt",
               skip = 1, col_names = c("flow", "parker_qs", "wilcock_qs", "gaeuman_qs"))
 
+s <- str_match("SedRatingCurve_RiverMile_291.98.txt", "[0-9]+\\.?[0-9]+")[,1]
 files_to_read <- list.files("data-raw/CrossSectionFluxes/SedimentRatingCurves/",
                             pattern = ".txt",
                             full.names = TRUE)
 
 
-s <- str_match("SedRatingCurve_RiverMile_291.98.txt", "[0-9]+\\.?[0-9]+")[,1]
 
 
 res <- map_df(files_to_read, function(x) {

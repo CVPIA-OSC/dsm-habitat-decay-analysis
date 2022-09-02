@@ -15,10 +15,13 @@ d50_scaledown_summarized <- d50_scaledown %>%
   ) %>% 
   mutate(flow_cfs = flow_cfday / 86400)
 
+write_rds(d50_scaledown_summarized, "../spawning-habitat-decay/data/d50-scaled-summary.rds")
+
 d50_scaledown_summarized %>% 
   gather(stat, value, min_fraction:max_fraction) %>%  
-  ggplot(aes(flow_cfs, value, color = stat)) + geom_line() + 
-  scale_x_continuous(labels = scales::comma, breaks = c(8000, 20000, 40000, 60000, 80000))
+  ggplot(aes(flow_cfs, value, color = stat)) + geom_line(size=1.25) + 
+  scale_x_continuous(labels = scales::comma, breaks = c(8000, 20000, 40000, 60000, 80000)) + 
+  labs(y = "Fraction Above Threshold", color = "")
 
 
 
@@ -29,6 +32,8 @@ rating_curves <- res %>% gather(curve, sediment_transport, parker_qs:gaeuman_qs)
     sediment_transport = sediment_transport *  35.315 * 86400, # cf per day conversion
     flow = flow * 35.315 * 86400 # cfs per day conversion
   )
+
+# write_rds(rating_curves, "../spawning-habitat-decay/data/rating-curves.rds")
 
 # this curve will be used for plots, its prefered to show the average daily cfs in the x-axis
 # and the total daily transport that results from that on the y-axis
@@ -67,15 +72,44 @@ upper_sac_rating_curve_cfs_to_sed_daily <- rating_cfs_to_sed_daily %>%
 
 
 
-upper_sac_func <- approxfun(upper_sac_rating_curve$flow, 
-                            upper_sac_rating_curve$avg_min * 
-                              d50_scaledown_summarized$max_fraction * 
-                              rep(.75, length(upper_sac_rating_curve$avg_avg)))
+upper_sac_func_min <- approxfun(upper_sac_rating_curve$flow, 
+                            upper_sac_rating_curve$avg_min 
+                            *
+                              d50_scaledown_summarized$max_fraction *
+                              rep(.75, length(upper_sac_rating_curve$avg_avg))
+                            )
+
+upper_sac_func_max <- approxfun(upper_sac_rating_curve$flow, 
+                            upper_sac_rating_curve$avg_max 
+                            # * 
+                            #   d50_scaledown_summarized$max_fraction * 
+                            #   rep(.75, length(upper_sac_rating_curve$avg_avg))
+                            )
+
+
+upper_sac_func_avg <- approxfun(upper_sac_rating_curve$flow, 
+                            upper_sac_rating_curve$avg_avg 
+                            # * 
+                            #   d50_scaledown_summarized$max_fraction * 
+                            #   rep(.75, length(upper_sac_rating_curve$avg_avg))
+                            )
+
 
 upper_sac_cfs_sed_daily_func <- approxfun(upper_sac_rating_curve_cfs_to_sed_daily$flow, 
-                                          upper_sac_rating_curve_cfs_to_sed_daily$avg_avg * 
+                                          upper_sac_rating_curve_cfs_to_sed_daily$avg_min * 
                                             d50_scaledown_summarized$max_fraction * 
                                             rep(.75, length(upper_sac_rating_curve_cfs_to_sed_daily$avg_avg)))
+
+upper_sac_cfs_sed_daily_func_30 <- approxfun(upper_sac_rating_curve_cfs_to_sed_daily$flow, 
+                                          upper_sac_rating_curve_cfs_to_sed_daily$avg_min * 
+                                            d50_scaledown_summarized$max_fraction * 
+                                            rep(.30, length(upper_sac_rating_curve_cfs_to_sed_daily$avg_avg)))
+
+upper_sac_cfs_sed_daily_func_25 <- approxfun(upper_sac_rating_curve_cfs_to_sed_daily$flow, 
+                                             upper_sac_rating_curve_cfs_to_sed_daily$avg_min * 
+                                               d50_scaledown_summarized$max_fraction * 
+                                               rep(.25, length(upper_sac_rating_curve_cfs_to_sed_daily$avg_avg)))
+
 
 
 rating_curves %>% 
@@ -92,11 +126,12 @@ rating_curves %>%
     avg_max = mean(max)
   ) %>% 
   ggplot() + 
-  geom_line(aes(x = flow,y = avg_min, color = "min")) + 
-  geom_line(aes(x = flow,y = avg_avg, color = "mean")) + 
-  geom_line(aes(x = flow,y = avg_max, color = "max")) + 
+  geom_line(aes(x = flow,y = avg_min, color = "min"), size=1.25) + 
+  geom_line(aes(x = flow,y = avg_avg, color = "mean"), size=1.25) + 
+  geom_line(aes(x = flow,y = avg_max, color = "max"), size=1.25) + 
   labs(y = "cubic feet per day", 
-       x = "flow (cfd)") + 
+       x = "flow (cfs)", 
+       title = "Average Daily CFS to Total Capacity CFD", color = "") + 
   scale_y_continuous(labels = scales::comma) + 
   scale_x_continuous(labels = scales::comma) 
 

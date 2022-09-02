@@ -1,0 +1,487 @@
+---
+title: "Habitat Decay Analysis"
+format:
+  html:
+    toc: true
+    highlight-style: ayu
+editor_options: 
+  chunk_output_type: console
+monofont: "Cascadia Mono"
+mainfont: "Lora"
+backgroundcolor: "#faf8f6"
+
+---
+
+## Data Preperation
+
+
+### Gravel Size Scaledown
+
+```{r}
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(gt)
+library(gridExtra)
+library(lubridate)
+
+theme_set(theme_bw())
+
+gravel_size_scaledown <- read_csv("data/sediment-prop-move.csv")
+
+gt(head(gravel_size_scaledown)) |> 
+  cols_label(flow_m3s = "Flow (m3s)", 
+             fraction = "Fraction", 
+             reach = "Reach")
+```
+
+Gravel scaledown is summarized to a single flow to fraction of movement
+curve to represent the entire area of interest. This process is shown below as
+well as the output.
+ 
+```{r}
+gravel_size_scaledown_summarized <- gravel_size_scaledown |> 
+  mutate(
+    flow_cfs = flow_m3s * 35.315,
+    flow_cfday = flow_cfs * 86400) |> 
+  group_by(flow_cfs) |> 
+  summarise(
+    min_fraction = min(fraction), 
+    avg_fraction = mean(fraction),
+    max_fraction = max(fraction)
+  ) 
+
+gt(gravel_size_scaledown_summarized)
+```
+
+### Flow to transport curves
+
+Flow to sediment transport curves were created using an SRH2D model developed
+for the Upper Sacramento River. 
+
+
+```{r}
+#| message: false
+
+files_to_read <- list.files("data-raw/CrossSectionFluxes/SedimentRatingCurves/",
+                            pattern = ".txt",
+                            full.names = TRUE)
+
+
+rating_curves_by_rm <- map_df(files_to_read, function(x) {
+  river_mile <- str_match(x, "[0-9]+\\.?[0-9]+")[,1]
+  read_tsv(x, skip = 1, col_names = c("flow", "parker_qs", "wilcock_qs", "gaeuman_qs")) |> 
+    mutate(river_mile = as.numeric(river_mile))
+})
+
+```
+
+The raw data has the following format:
+
+```{r}
+#| echo: false
+gt(rating_curves_by_rm %>% head(5)) |>  
+  gt::cols_label(flow = "Flow (cfs)", 
+                 parker_qs = "Parker", 
+                 wilcock_qs = "Wilcock", 
+                 gaeuman_qs = "Gaeuman", 
+                 river_mile = "River Mile") |> 
+  gt::tab_footnote("355 additional rows not shown")
+```
+
+
+#### Processing transport curves
+
+Transport curves for 4 different __models__ are provided, each of these is defined
+for set of flows and at a set of river mile locations. We compute a single curve
+from these by first extracting the minumum transport from each of the 4 curves
+at corresponding river mile and flow values. After this we summarize again, 
+this time across all river miles. We end up with a single curve with shown below.
+
+_Note: our choice choosing the minimum in the first summary above is somewhat arbitraty and can be easily updated_
+
+
+```{r}
+#| cache: true
+
+rating_curve <- rating_curves_by_rm |> 
+  rename(flow_cms = flow) |> 
+  pivot_longer(parker_qs:gaeuman_qs, names_to = "curve", values_to = "transport_m3_per_second") |> 
+  mutate(
+    flow_cfs = 35.315 * flow_cms,
+    flow_cfd = flow_cfs * 86400, # cubic feet per day
+    transport_ft3_per_second = 35.315 * transport_m3_per_second,
+    transport_ft3_per_day = 86400 * transport_ft3_per_second # transport per day
+  ) |> 
+  group_by(flow_cfs, river_mile) |> 
+  summarise(
+    sed_ft3_per_second_min = min(transport_ft3_per_second), 
+    sed_ft3_per_second_avg = mean(transport_ft3_per_second),
+    sed_ft3_per_second_max = max(transport_ft3_per_second),    
+    sed_ft3_per_day_min = min(transport_ft3_per_day), 
+    sed_ft3_per_day_avg = mean(transport_ft3_per_day),
+    sed_ft3_per_day_max = max(transport_ft3_per_day)
+  ) |> 
+  ungroup() |> 
+  group_by(flow_cfs) |> 
+  summarise(
+    sed_ft3_per_second_min = mean(sed_ft3_per_second_min), 
+    sed_ft3_per_second_avg = mean(sed_ft3_per_second_avg),
+    sed_ft3_per_second_max = mean(sed_ft3_per_second_max),
+    sed_ft3_per_day_min = mean(sed_ft3_per_day_min), 
+    sed_ft3_per_day_avg = mean(sed_ft3_per_day_avg),
+    sed_ft3_per_day_max = mean(sed_ft3_per_day_max),
+  ) |>
+  ungroup() |> 
+  mutate(flow_cfd = flow_cfs * 86400)
+```
+
+This results in the following data:
+
+```{r}
+#| echo: false
+rating_curve %>% 
+  pivot_longer(names_to = "curve", 
+               values_to = "sediment_transport", 
+               sed_ft3_per_second_min:sed_ft3_per_second_max) %>%
+  mutate(
+    curve_label = case_when(
+      curve == "sed_ft3_per_second_min" ~ "Min (CFS)",
+      curve == "sed_ft3_per_second_avg" ~ "Avg (CFS)",
+      curve == "sed_ft3_per_second_max" ~ "Max (CFS)",
+    ), 
+    curve_label = factor(curve_label, 
+                         levels = c(
+                           "Max (CFS)",
+                           "Avg (CFS)",
+                           "Min (CFS)"
+                         ))) %>% 
+  ggplot(aes(flow_cfs, sediment_transport, color = curve_label)) + 
+  geom_line(size = 1.5) + 
+  labs(x = "flow (cfs)", y = "Sediment Transport (cfs)", 
+       title = "Sediment Transport Rating Curve", 
+       subtitle = "Flow (cfs) to Transport (cfs)",
+       color = NULL) + 
+  theme_bw() + 
+  theme(legend.position="bottom") 
+
+# rating_curve %>% 
+#   pivot_longer(names_to = "curve", 
+#                values_to = "sediment_transport", 
+#                sed_ft3_per_day_min:sed_ft3_per_day_max) %>% 
+#   ggplot(aes(flow_cfs, sediment_transport, color = curve)) + 
+#   geom_line(size=1.5) + 
+#   theme_bw() +
+#   theme(legend.position="bottom") + 
+#   labs(x = "flow (cfs)", y = "Sediment Transport (cfd)")
+```
+
+
+#### Generalizing the relationship
+
+We generalize the relationship above by making use of R's `approxfun` 
+function generator. The setup of this is shown here:
+
+```{r}
+flow_cfs_to_sed_transport_cfs <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$sed_ft3_per_second_min
+)
+
+flow_cfs_to_sed_transport_cfd <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$sed_ft3_per_day_min
+)
+```
+
+The two functions can be used to obtain a transport value given a flow value
+in cfs. R's `approxfun` uses linear interpolation to calculate these.
+
+### Flow Data
+
+Ultimately we will use the flow data from the DSM package `DSMflow` to drive 
+our decay values. However, we want to mmake sure that the flows that were used
+to develop these curves are reasonable close to those from the DSM to proceed
+in the process.
+
+```{r}
+#| echo: false
+kwk_usgs <- readr::read_rds("data/kwk-flows-1980-2022.rds")
+```
+
+```{r}
+#| eval: false
+kwk_usgs <- dataRetrieval::readNWISdv("11370500", parameterCd = "00060", startDate = "1980-01-01", 
+                                      endDate = "2022-01-01") |>  
+  dataRetrieval::renameNWISColumns() |> 
+  as_tibble()
+```
+
+## Optimizations and scale-downs
+
+
+### Gravel Size Scaledown 
+
+There are number of "scale-downs" we peform to the transport curves to better 
+match observed data. The first is based on size threshold. Given a flow we assume
+only a fraction of gravel is able to move based on its size. These data were processed
+in the [Gravel Size Scaledown](#gravel-size-scaledown) section above. We use the average 
+flow to fraction of movement curve across all reaches defined in the data to scale-down 
+the transport curve.
+
+
+### Sediment in Motion Scaledown
+
+The second scaledown we perform is to account for sediment still in motion. 
+To do this we carry out an optmization process that assumes full habitat amount on the
+first day of 2015. That is 254690.3 square meters. When converted to cubic feet for
+use alongside the sediment transport we assume 2 feet of depth and value becomes
+5482973 cubid feet. Based on obverved data we anticpate this volume of habitat to
+have decayed to zero by April 1st of 2017. The objective function and process 
+is shown below.
+
+```{r}
+objective_func <- function(threshold) {
+  
+  # scale down the tranport curves to just the d50mm threshold of movement
+  scaled_sed_transport <- rating_curve$sed_ft3_per_day_min * 
+    gravel_size_scaledown_summarized$avg_fraction
+  
+  # create an approxfun given a threshold of movement (this value will be searched by the optim function)
+  calib_sed_curve <- approxfun(rating_curve$flow_cfs, 
+                         scaled_sed_transport * 
+                           rep(threshold, 
+                               length(rating_curve$flow_cfs)))
+  
+  # convert square meters to cubic feet, assume 2ft depth
+  starting_volume <- (254690.3 * 10.764) * 2
+  
+  calib_kwk_sed_transport <- tibble(
+    date = kwk_usgs$Date, 
+    flow = kwk_usgs$Flow, 
+    sediment_transport_f3_day = calib_sed_curve(flow)
+  ) |> 
+    mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day))
+  
+  
+  calib_kwk_sed_transport_sim <- calib_kwk_sed_transport |> 
+    filter(date >= "2015-01-01", date <= "2017-04-01") |> 
+    mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day), 
+           sediment_transport_f3_day_accum = cumsum(sediment_transport_f3_day),
+           current_vol = starting_volume - sediment_transport_f3_day_accum)
+  
+  last_volume <- calib_kwk_sed_transport_sim |> tail(1) |> pull(current_vol)
+  
+  # return absolute distance to zero
+  return(abs(last_volume - 0))
+}
+
+
+# We want to optimize the function by the threshold value that results
+# in the volumne nearest zero.
+result <- optimise(objective_func, interval = c(0, 1), maximum = FALSE)
+```
+
+
+
+```{r}
+flow_cfs_to_sed_cfd_calibrated <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$sed_ft3_per_day_min * 
+    gravel_size_scaledown_summarized$avg_fraction * 
+    rep(result$minimum, 
+        length(rating_curve$flow_cfs))
+)
+
+calibrated_kwk_sed_transport <- tibble(
+  date = kwk_usgs$Date, 
+  flow = kwk_usgs$Flow, 
+  sediment_transport_f3_day = flow_cfs_to_sed_cfd_calibrated(flow)
+) |> 
+  mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day))
+
+
+starting_volume <- (254690.3 * 10.764) * 2
+
+# add 20000 tons 
+
+kwk_sed_transport_sim <- calibrated_kwk_sed_transport |> 
+  filter(date >= "2015-01-01", date <= "2017-04-01") |> 
+  mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day), 
+         sediment_transport_f3_day_accum = cumsum(sediment_transport_f3_day),
+         start_vol = starting_volume,
+         current_vol = start_vol - sediment_transport_f3_day_accum)
+
+p1 <- kwk_sed_transport_sim |> 
+  ggplot() + 
+  geom_line(aes(date, current_vol)) + 
+  labs(x = "", y = "Spawning Habitat Vol. (cubic feet)") + 
+  theme_bw()
+
+p2 <- kwk_usgs |> 
+  filter(Date >= "2015-01-01", Date <= "2017-04-01") |> ggplot(aes(Date, Flow)) + geom_line() + 
+  theme_bw()
+
+grid.arrange(p2, p1, nrow = 2)
+```
+
+### Augmentations and Depositions
+
+The goal for this optimization process is to scale the curve so that we are meeting 
+known
+
+```{r}
+#| warning: false
+#| message: false
+
+# spawning habitat in Upper Sacramento for Fall Run
+upsac_spawning_base <- 
+  DSMhabitat::fr_spawn["Upper Sacramento River",,] |> 
+  as_tibble() |> 
+  mutate(month = 1:12, 
+         month_label = month.abb) |> 
+  pivot_longer(names_to = "year", values_to = "spawning_habitat", 
+               `1979`:`2000`) |> 
+  mutate(year = as.numeric(year), 
+         date = lubridate::as_date(paste0(year, "-", month, "-", days_in_month(month)))) |> 
+  arrange(date) |> 
+  filter(year(date) >= 1979) |> 
+  mutate(spawning_acres = spawning_habitat / 4047)
+
+# flows for upper sacramento 
+dsm_flows <- DSMflow::flows_cfs |> 
+  select(date, flow = `Upper Sacramento River`) |> 
+  filter(year(date) %in% 1979:2000)
+
+# calculate the daily decay by applying flows to the flow->sed func
+upper_sac_decay <- tibble(
+  date = dsm_flows$date,
+  decay_cfd = ifelse(is.na(
+    (x <- flow_cfs_to_sed_cfd_calibrated(dsm_flows$flow))), 
+    0, x
+  ), 
+  decay_cfm = decay_cfd * days_in_month(month(date)),
+  decay_sqm = decay_cfm / 2, 
+  decay_acres_month = decay_sqm / 43560
+) |> 
+  left_join(dsm_flows)
+
+
+sac_augs <- read_csv("data/sacramento_river_gravel_augmentation_data.csv")
+
+aug_acres_fill <- 5
+
+
+sac_aug_totals <-
+  sac_augs |> 
+  group_by(date) |> 
+  summarise(tons = sum(tons)) |> 
+  mutate(
+    date = as_date(paste0(date, "-01-31")),
+    cubic_yard = tons / 1.5, 
+    cubic_feet = cubic_yard * 27,
+    sq_feet = cubic_feet / 2, 
+    acres = sq_feet / 43560
+  ) |> 
+  select(date, tons, acres) |> 
+  bind_rows(
+    tibble(date = seq(as_date("1980-01-31"), as_date("1996-01-31"), by="1 year"), 
+           acres = aug_acres_fill)
+  ) |> 
+  arrange(date)
+```
+
+```{r}
+#| warning: false
+#| message: false
+start_hab_acres <- mean(DSMhabitat::fr_spawn["Upper Sacramento River",,]/4047)
+
+# get corresponding augs and decays 
+decays <- upper_sac_decay |> select(date, decay_acres_month, flow)
+augmentations <- sac_aug_totals |> select(date, aug_acres=acres)
+
+
+
+decays_and_augs <- decays |> 
+  left_join(augmentations, by=c("date"="date")) |> 
+  mutate(aug_acres = ifelse(is.na(aug_acres), 0, aug_acres), 
+         aug_minus_decay = aug_acres - decay_acres_month, 
+         aug_minus_decay_scaled = aug_minus_decay * .01,
+         month = month(date),
+         year = year(date))
+
+
+# how much decay on average per year?
+decays_and_augs |> 
+  group_by(year) |> 
+  summarise(
+    avg_diff = mean(aug_minus_decay), 
+    sum_loss = sum(aug_minus_decay)
+  ) |> 
+  pull(sum_loss) |> 
+  mean()
+
+
+# what is the spawning habitat?
+upsac_spawning_base |> 
+  ggplot(aes(date, spawning_acres)) + geom_line() 
+
+# plot of augmentation vs loss
+decays_and_augs |> 
+  ggplot(aes(date, aug_minus_decay)) + geom_line() + 
+  labs(y = "Augmentation minus Decay (acres)", 
+       title = "Augmentation minus Decay")
+
+# plot of augmentation vs loss accumulated
+decays_and_augs |> 
+  mutate(
+    accum_loss = cumsum(aug_minus_decay)
+  ) |> 
+  ggplot(aes(date, accum_loss)) + geom_line() + 
+  labs(y = "Augmentation minus Decay accumulation")
+
+decays_and_augs |> 
+  mutate(
+    accum_loss = cumsum(aug_minus_decay_scaled)
+  ) |> 
+  ggplot(aes(date, accum_loss)) + geom_line() + 
+  labs(y = "Augmentation minus Decay accumulation")
+```
+
+
+```{r}
+#| warning: false
+#| message: false
+
+nodos_sed_in_out <- read_csv("data/sed-in-sed-out.csv", 
+                             col_names = c("river_mile", "in_minus_out_tons_per_year")) |> 
+  mutate(
+    cubic_yard = in_minus_out_tons_per_year / 1.5, 
+    cubic_feet = cubic_yard * 27,
+    sq_feet = cubic_feet / 2, 
+    in_minus_out_acres_per_year = sq_feet / 43560
+  ) |> 
+  select(river_mile, in_minus_out_tons_per_year, in_minus_out_acres_per_year)
+
+nodos_sed_in_out |> 
+  ggplot(aes(x=river_mile, y=in_minus_out_acres_per_year)) +
+  geom_segment(aes(x=river_mile, xend=river_mile, y=0, yend=in_minus_out_acres_per_year)) +
+  geom_point() + 
+  geom_vline(xintercept = 290, color = "red", linetype=2) + 
+  geom_vline(xintercept = 244, color = "red", linetype=2) + 
+  labs(x = "River Mile", y = "Sediment in - Sedimnet out (acres/year)")
+
+nodos_sed_in_out |> 
+  filter(river_mile >= 290) |> 
+  pull(in_minus_out_acres_per_year) |> 
+  sum()
+
+nodos_sed_in_out |> 
+  filter(river_mile < 290, river_mile >= 244) |> 
+  pull(in_minus_out_acres_per_year) |> 
+  sum()
+
+
+range(nodos_sed_in_out)
+```

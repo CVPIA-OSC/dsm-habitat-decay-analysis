@@ -1,0 +1,464 @@
+---
+title: "Untitled"
+author: "Emanuel Rodriguez"
+date: "5/17/2022"
+output: 
+  html_document:
+    theme: readable
+    code_folding: "hide"
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(fig.fullwidth = TRUE)
+library(tidyverse)
+library(gt)
+library(gridExtra)
+library(lubridate)
+
+
+# conversions
+meters_cubed_to_feet_cubed <- function(m3) m3 * 35.315
+
+d50_scaledown <- read_csv("data/sediment-prop-move.csv")
+
+d50_scaledown_summarized <- d50_scaledown %>% 
+  mutate(
+    flow_cfs = flow_m3s * 35.315,
+    flow_cfday = flow_cfs * 86400) %>% 
+  group_by(flow_cfs) %>% 
+  summarise(
+    min_fraction = min(fraction), 
+    avg_fraction = mean(fraction),
+    max_fraction = max(fraction)
+  ) 
+```
+
+## Objective 
+
+Our objective in this analysis is to provide a new set of spawning
+habitat values for the DSM models. These updated habitat amounts will 
+incorporate real flow data.
+
+
+## Flow to Sediment Transport Curves
+
+Flow to sediment transport curves were created using an SRH2D model developed
+for the Upper Sacramento River. 
+
+
+```{r, echo=FALSE}
+files_to_read <- list.files("data-raw/CrossSectionFluxes/SedimentRatingCurves/",
+                            pattern = ".txt",
+                            full.names = TRUE)
+
+
+rating_curves_by_rm <- map_df(files_to_read, function(x) {
+  river_mile <- str_match(x, "[0-9]+\\.?[0-9]+")[,1]
+  read_tsv(x, skip = 1, col_names = c("flow", "parker_qs", "wilcock_qs", "gaeuman_qs")) %>%
+    mutate(river_mile = as.numeric(river_mile))
+})
+
+```
+
+The following shows the first 5 elements in the data.
+
+```{r}
+g <- gt(rating_curves_by_rm %>% head()) %>% 
+  gt::cols_label(flow = "Flow (cfs)", 
+                 parker_qs = "Parker", 
+                 wilcock_qs = "Wilcock", 
+                 gaeuman_qs = "Gaeuman", 
+                 river_mile = "River Mile")
+
+```
+
+```{r}
+rating_curves_by_rm %>%
+  pivot_longer(values_to = "transport", 
+               names_to = "curve", 
+               parker_qs:gaeuman_qs) %>%
+  filter(curve == "parker_qs") %>% 
+  ggplot(aes(flow, transport, group = river_mile)) + 
+  geom_line(alpha=.2)
+```
+
+
+### Summarizing to a Single Transport Curve
+
+Transport curves for 4 different __models__ are provided, each of these is defined
+for set of flows and at a set of river mile locations. We compute a single curve
+from these by first extracting the minumum transport from each of the 4 curves
+at corresponding river mile and flow values. After this we summarize again, 
+this time across all river miles. We end up with a single curve with shown below.
+
+_Note: our choice choosing the minimum in the first summary above is somewhat arbitraty and can be easily updated_
+
+```{r, cache=TRUE}
+rating_curve <- rating_curves_by_rm %>% 
+  rename(flow_cms = flow) %>% 
+  pivot_longer(parker_qs:gaeuman_qs, names_to = "curve", values_to = "transport_m3_per_second") %>% 
+  mutate(
+    flow_cfs = 35.315 * flow_cms,
+    flow_cfd = flow_cfs * 86400, # cubic feet per day
+    transport_ft3_per_second = 35.315 * transport_m3_per_second,
+    transport_ft3_per_day = 86400 * transport_ft3_per_second # transport per day
+  ) %>% 
+  group_by(flow_cfs, river_mile) %>% 
+  summarise(
+    sed_ft3_per_second_min = min(transport_ft3_per_second), 
+    sed_ft3_per_second_avg = mean(transport_ft3_per_second),
+    sed_ft3_per_second_max = max(transport_ft3_per_second),    
+    sed_ft3_per_day_min = min(transport_ft3_per_day), 
+    sed_ft3_per_day_avg = mean(transport_ft3_per_day),
+    sed_ft3_per_day_max = max(transport_ft3_per_day)
+  ) %>% 
+  ungroup() %>% 
+  group_by(flow_cfs) %>% 
+  summarise(
+    sed_ft3_per_second_min = mean(sed_ft3_per_second_min), 
+    sed_ft3_per_second_avg = mean(sed_ft3_per_second_avg),
+    sed_ft3_per_second_max = mean(sed_ft3_per_second_max),
+    sed_ft3_per_day_min = mean(sed_ft3_per_day_min), 
+    sed_ft3_per_day_avg = mean(sed_ft3_per_day_avg),
+    sed_ft3_per_day_max = mean(sed_ft3_per_day_max),
+  ) %>%
+  ungroup() %>% 
+  mutate(flow_cfd = flow_cfs * 86400)
+
+```
+
+```{r}
+rating_curve %>% 
+  pivot_longer(names_to = "curve", 
+               values_to = "sediment_transport", 
+               sed_ft3_per_second_min:sed_ft3_per_second_max) %>%
+  mutate(
+    curve_label = case_when(
+      curve == "sed_ft3_per_second_min" ~ "Min (CFS)",
+      curve == "sed_ft3_per_second_avg" ~ "Avg (CFS)",
+      curve == "sed_ft3_per_second_max" ~ "Max (CFS)",
+    ), 
+    curve_label = factor(curve_label, 
+                         levels = c(
+                           "Max (CFS)",
+                           "Avg (CFS)",
+                           "Min (CFS)"
+                         ))) %>% 
+  ggplot(aes(flow_cfs, sediment_transport, color = curve_label)) + 
+  geom_line(size = 1.5) + 
+  geom_hline(yintercept = 2.5) + 
+  theme(legend.position="bottom") + 
+  labs(x = "flow (cfs)", y = "Sediment Transport (cfs)", 
+       title = "Sediment Transport Rating Curve", 
+       subtitle = "Flow (cfs) to Transport (cfs)",
+       color = NULL) + 
+  theme_bw()
+
+rating_curve %>% 
+  pivot_longer(names_to = "curve", 
+               values_to = "sediment_transport", 
+               sed_ft3_per_day_min:sed_ft3_per_day_max) %>% 
+  ggplot(aes(flow_cfs, sediment_transport, color = curve)) + 
+  geom_line() + 
+  theme(legend.position="bottom") + 
+  labs(x = "flow (cfs)", y = "Sediment Transport (cfd)")
+
+```
+
+Using the relationship above we develop `approxfun`'s that allow us to
+interpolate any a transport value given any flow within the domain. We will
+be using USGS flow data to obtain daily transport values in the following
+section.
+
+```
+flow_cfs_to_sed_transport_cfs <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$transport_ft3_per_second
+)
+
+flow_cfs_to_sed_transport_cfd <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$transport_ft3_per_day
+)
+```
+
+```{r echo=TRUE}
+flow_cfs_to_sed_transport_cfs <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$sed_ft3_per_second_min
+)
+
+flow_cfs_to_sed_transport_cfd <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$sed_ft3_per_day_min
+)
+```
+
+
+
+## Flow Data 
+
+The flow data used to compute sediment transport values is obtained 
+using the USGS `dataRetrieval` package. The following parameters were used:
+
+* site_number: 11370500
+* parameter_code: 00060 (flow in cfs)
+* start_date: 1980-01-01
+* end_date: 2022-01-01
+
+
+```{r, cache=TRUE}
+kwk_usgs <- dataRetrieval::readNWISdv("11370500", parameterCd = "00060", startDate = "1980-01-01", 
+                                      endDate = "2022-01-01") %>% 
+  dataRetrieval::renameNWISColumns() %>% 
+  as_tibble()
+```
+
+```{r}
+kwk_usgs %>% 
+  ggplot(aes(Date, Flow)) + 
+  geom_line() + 
+  labs(x = "", y = "Daily Average Flow (Cfs)", 
+       title = "USGS Daily Average Flow at Keswick Dam (1980-2022")
+
+kwk_usgs %>% 
+  mutate(year_group = as.character(year(Date)), 
+         plot_date = `year<-`(Date, 2050)) %>% 
+  ggplot(aes(plot_date, Flow, group = year_group)) + 
+  geom_line(alpha=0.2) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b") +
+  theme_bw() + 
+  labs(x = "", y = "Daily Average Flow (Cfs)", 
+       title = "USGS Daily Average Flow at Keswick Dam (1980-2022")
+
+
+kwk_usgs %>% 
+  filter(Date >= "2015-01-01", Date <= "2017-04-01") %>% 
+    ggplot(aes(Date, Flow)) + 
+  geom_line() + 
+  labs(x = "", y = "Daily Average Flow (Cfs)", 
+       title = "USGS Daily Average Flow at Keswick Dam") + 
+  scale_x_date(date_labels = "%b-%y'", 
+               date_breaks = "3 months") + 
+  theme_bw()
+
+```
+
+The time series for flow data:
+
+```{r}
+kwk_sed_transport <- tibble(
+  date = kwk_usgs$Date, 
+  flow = kwk_usgs$Flow, 
+  sediment_transport_f3_day = flow_cfs_to_sed_transport_cfd(flow)
+) %>% 
+  mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day))
+
+usgs_flow_plot <- ggplot(kwk_sed_transport, aes(date, flow)) + geom_line()
+
+print(usgs_flow_plot)
+```
+
+### USGS Daily vs CALSIM 
+
+Ultimately we will need to convert the decay values from daily usgs to a monthly
+value that is compatible with the DSM models. Here we compare USGS flows 
+summarized to a monthly mean vs the CALSIM values.
+
+```{r}
+calsim_flows <- DSMflow::upper_sacramento_flows %>% 
+  as_tibble() %>%
+  mutate(month = 1:12) %>% 
+  pivot_longer(-month, names_to = "year", values_to = "flow_cms") %>% 
+  mutate(date = lubridate::as_date(paste0(year, "-", month, "-01")), 
+         year = as.numeric(year), 
+         flow_cfs = 35.315 * flow_cms)
+
+
+kwk_monthly <- kwk_usgs %>% 
+  mutate(month = lubridate::month(Date), year = lubridate::year(Date)) %>% 
+  group_by(year, month) %>% 
+  summarise(
+    usgs_flow_avg = mean(Flow, na.rm = TRUE),
+    usgs_flow_med = median(Flow, na.rm = TRUE), 
+    usgs_flow_max = max(Flow, na.rm = TRUE)
+  ) %>% ungroup() %>% 
+  mutate(date = lubridate::as_date(paste0(year, "-", month, "-01")))
+  
+```
+
+
+```{r}
+combined_flows <- calsim_flows %>% 
+  left_join(kwk_monthly, by = c("date"="date"))
+
+combined_flows %>% 
+  ggplot(aes(usgs_flow_avg, flow_cfs)) + geom_point() + 
+  geom_abline(slope = 1, intercept = 0) + 
+  # geom_smooth(method = "lm", formula = y ~ poly(x, 2)) + 
+  labs(x = "USGS Flow", y = "CALSIM Flow")
+
+combined_flows %>% 
+  ggplot() + 
+  geom_line(aes(date, flow_cfs, color = "CALSIM")) + 
+  geom_line(aes(date, usgs_flow_max, color = "USGS")) + 
+  labs(x = "", y = "Average Monthly Flow (cfs)", 
+       color = "") + 
+  theme_bw()
+```
+
+We can build a regression line from this relationship.
+
+```{r}
+m <- lm(flow_cfs ~ poly(usgs_flow_avg, 2), data = combined_flows)
+
+predicted_month_flows <- tibble(
+  date = combined_flows$date, 
+  calsim_flow = combined_flows$flow_cfs, 
+  predicted_flow = m$fitted.values
+)
+
+predicted_month_flows %>% 
+  ggplot() + 
+  geom_line(aes(date, calsim_flow, color = "CALSIM")) + 
+  geom_line(aes(date, predicted_flow, color = "Predicted"))
+
+```
+
+
+```{r}
+usgs_flow_plot <- ggplot(kwk_sed_transport, aes(date, flow)) + geom_line()
+sed_transport_plot <- ggplot(kwk_sed_transport, aes(date, sediment_transport_f3_day)) + geom_line()
+
+grid.arrange(usgs_flow_plot, sed_transport_plot, nrow=2)
+```
+
+## Simulate Years of Decay
+
+To simulate decay based on our curves we can simply set a starting point, 
+apply daily USGS flows to accumulate loss and subtract this loss from our 
+"starting point"
+
+
+```{r}
+# starting_volume <- 66.9 * (43560) * 2
+# starting_vol <- 66.9 * (43560) * 2
+
+# starting volume is in square meters
+starting_volume <- (254690.3 * 10.764) * 2
+
+kwk_sed_transport_sim <- kwk_sed_transport %>% 
+  filter(date >= "2015-01-01", date <= "2017-01-01") %>% 
+  mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day), 
+         sediment_transport_f3_day_accum = cumsum(sediment_transport_f3_day),
+         start_vol = starting_volume,
+         current_vol = start_vol - sediment_transport_f3_day_accum)
+```
+
+
+```{r}
+p1 <- kwk_sed_transport_sim %>% 
+  ggplot() + 
+  geom_line(aes(date, current_vol))
+p2 <- kwk_sed_transport_sim %>% 
+  ggplot() + 
+  geom_line(aes(date, flow))
+
+grid.arrange(p2, p1, nrow = 2)
+
+```
+
+
+## Calibrate 
+
+The calibration process assumes full habitat amount on the first day of 2015. 
+That is 254690.3 square meters. When converted cubic feet for use alongside 
+the sediment transport we assume 2 feet of depth and value becomes 5482973
+cubid feet. Based on obverved data we anticpate this volume of habitat to have
+decayed by the first day of 2017, there our calibration process will optimize
+a threshold of movement value based on the fact that we would expect to have 
+zero volumen by "2017-01-01".
+
+```{r, eval=TRUE}
+calib_func <- function(threshold) {
+  scaled_sed_transport <- rating_curve$sed_ft3_per_day_min * 
+    d50_scaledown_summarized$avg_fraction
+  
+  calib_sed_curve <- approxfun(rating_curve$flow_cfs, 
+                         rating_curve$sed_ft3_per_day_min * 
+                           rep(threshold, 
+                               length(rating_curve$flow_cfs)))
+  
+  # convert square meters to cubic feet, assume 2ft depth
+  starting_volume <- (254690.3 * 10.764) * 2
+  
+  calib_kwk_sed_transport <- tibble(
+    date = kwk_usgs$Date, 
+    flow = kwk_usgs$Flow, 
+    sediment_transport_f3_day = calib_sed_curve(flow)
+  ) %>% 
+    mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day))
+  
+  
+  calib_kwk_sed_transport_sim <- calib_kwk_sed_transport %>% 
+    filter(date >= "2015-01-01", date <= "2017-04-01") %>% 
+    mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day), 
+           sediment_transport_f3_day_accum = cumsum(sediment_transport_f3_day),
+           current_vol = starting_volume - sediment_transport_f3_day_accum)
+  
+  last_volume <- calib_kwk_sed_transport_sim %>% tail(1) %>% pull(current_vol)
+  
+  abs(last_volume - 0)
+}
+
+
+# We want to optimize the function by the threshold value that results
+# in the volumne nearest zero.
+result <- optimise(calib_func, interval = c(0, 1), maximum = FALSE)
+```
+
+
+
+```{r}
+flow_cfs_to_sed_cfd_calibrated <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$sed_ft3_per_day_min * rep(result$minimum, 
+ length(rating_curve$flow_cfs))
+)
+
+calibrated_kwk_sed_transport <- tibble(
+  date = kwk_usgs$Date, 
+  flow = kwk_usgs$Flow, 
+  sediment_transport_f3_day = flow_cfs_to_sed_cfd_calibrated(flow)
+) %>% 
+  mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day))
+
+
+starting_volume <- (254690.3 * 10.764) * 2
+
+# add 20000 tons 
+
+kwk_sed_transport_sim <- calibrated_kwk_sed_transport %>% 
+  filter(date >= "2015-01-01", date <= "2017-04-01") %>% 
+  mutate(sediment_transport_f3_day = ifelse(is.na(sediment_transport_f3_day), 0, sediment_transport_f3_day), 
+         sediment_transport_f3_day_accum = cumsum(sediment_transport_f3_day),
+         start_vol = starting_volume,
+         current_vol = start_vol - sediment_transport_f3_day_accum)
+
+p1 <- kwk_sed_transport_sim %>% 
+  ggplot() + 
+  geom_line(aes(date, current_vol)) + 
+  labs(x = "", y = "Spawning Habitat Vol. (cubic feet)") + 
+  theme_bw()
+
+p2 <- kwk_sed_transport %>% 
+  filter(date >= "2015-01-01", date <= "2017-04-01") %>% ggplot(aes(date, flow)) + geom_line() + 
+  theme_bw()
+
+grid.arrange(p2, p1, nrow = 2)
+```
+
+
