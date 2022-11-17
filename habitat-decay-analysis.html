@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.1.163">
+<meta name="generator" content="quarto-1.1.245">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -110,15 +110,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <ul>
   <li><a href="#data-preperation" id="toc-data-preperation" class="nav-link active" data-scroll-target="#data-preperation">Data Preperation</a>
   <ul class="collapse">
-  <li><a href="#gravel-size-scaledown" id="toc-gravel-size-scaledown" class="nav-link" data-scroll-target="#gravel-size-scaledown">Gravel Size Scaledown</a></li>
+  <li><a href="#gravel-size" id="toc-gravel-size" class="nav-link" data-scroll-target="#gravel-size">Gravel Size</a></li>
   <li><a href="#flow-to-transport-curves" id="toc-flow-to-transport-curves" class="nav-link" data-scroll-target="#flow-to-transport-curves">Flow to transport curves</a></li>
   <li><a href="#flow-data" id="toc-flow-data" class="nav-link" data-scroll-target="#flow-data">Flow Data</a></li>
   </ul></li>
   <li><a href="#optimizations-and-scale-downs" id="toc-optimizations-and-scale-downs" class="nav-link" data-scroll-target="#optimizations-and-scale-downs">Optimizations and scale-downs</a>
   <ul class="collapse">
-  <li><a href="#gravel-size-scaledown-1" id="toc-gravel-size-scaledown-1" class="nav-link" data-scroll-target="#gravel-size-scaledown-1">Gravel Size Scaledown</a></li>
+  <li><a href="#gravel-size-scaledown" id="toc-gravel-size-scaledown" class="nav-link" data-scroll-target="#gravel-size-scaledown">Gravel Size Scaledown</a></li>
   <li><a href="#sediment-in-motion-scaledown" id="toc-sediment-in-motion-scaledown" class="nav-link" data-scroll-target="#sediment-in-motion-scaledown">Sediment in Motion Scaledown</a></li>
   <li><a href="#augmentations-and-depositions" id="toc-augmentations-and-depositions" class="nav-link" data-scroll-target="#augmentations-and-depositions">Augmentations and Depositions</a></li>
+  </ul></li>
+  <li><a href="#scaling-to-other-watersheds" id="toc-scaling-to-other-watersheds" class="nav-link" data-scroll-target="#scaling-to-other-watersheds">Scaling To Other Watersheds</a>
+  <ul class="collapse">
+  <li><a href="#comparing-usgs-vs-dsm-flows" id="toc-comparing-usgs-vs-dsm-flows" class="nav-link" data-scroll-target="#comparing-usgs-vs-dsm-flows">Comparing USGS vs DSM flows</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -143,30 +147,21 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <section id="data-preperation" class="level2">
 <h2 class="anchored" data-anchor-id="data-preperation">Data Preperation</h2>
-<section id="gravel-size-scaledown" class="level3">
-<h3 class="anchored" data-anchor-id="gravel-size-scaledown">Gravel Size Scaledown</h3>
+<p>This section outlines how data was wrangled for use in this analysis. These section are referenced through out this document.</p>
+<section id="gravel-size" class="level3">
+<h3 class="anchored" data-anchor-id="gravel-size">Gravel Size</h3>
+<p>Gravel size data was obtained by digitizing the bar plot shown below from the <a href="#">link to report</a>.</p>
+<p><img src="assets/gravel-scaledown-source.png" class="img-fluid" alt="Figure of source plot from which we digitized data"></p>
+<p>The digitizing process was done using <a href="#">Webplot Digitizer</a> and produced the following data.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gt)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gridExtra)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>gravel_size_scaledown <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/sediment-prop-move.csv"</span>)</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">gt</span>(<span class="fu">head</span>(gravel_size_scaledown)) <span class="sc">|&gt;</span> </span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(<span class="at">flow_m3s =</span> <span class="st">"Flow (m3s)"</span>, </span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>             <span class="at">fraction =</span> <span class="st">"Fraction"</span>, </span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>             <span class="at">reach =</span> <span class="st">"Reach"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 
-<div id="haesbbuiqy" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="cviweddrhz" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-:where(#haesbbuiqy) .gt_table {
+:where(#cviweddrhz) .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -191,7 +186,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-left-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_heading {
+:where(#cviweddrhz) .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -203,7 +198,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_title {
+:where(#cviweddrhz) .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -215,7 +210,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-width: 0;
 }
 
-:where(#haesbbuiqy) .gt_subtitle {
+:where(#cviweddrhz) .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -227,13 +222,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-top-width: 0;
 }
 
-:where(#haesbbuiqy) .gt_bottom_border {
+:where(#cviweddrhz) .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_col_headings {
+:where(#cviweddrhz) .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -248,7 +243,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_col_heading {
+:where(#cviweddrhz) .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -268,7 +263,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   overflow-x: hidden;
 }
 
-:where(#haesbbuiqy) .gt_column_spanner_outer {
+:where(#cviweddrhz) .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -280,15 +275,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 4px;
 }
 
-:where(#haesbbuiqy) .gt_column_spanner_outer:first-child {
+:where(#cviweddrhz) .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-:where(#haesbbuiqy) .gt_column_spanner_outer:last-child {
+:where(#cviweddrhz) .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-:where(#haesbbuiqy) .gt_column_spanner {
+:where(#cviweddrhz) .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -300,7 +295,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   width: 100%;
 }
 
-:where(#haesbbuiqy) .gt_group_heading {
+:where(#cviweddrhz) .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -325,7 +320,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: middle;
 }
 
-:where(#haesbbuiqy) .gt_empty_group_heading {
+:where(#cviweddrhz) .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -340,15 +335,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: middle;
 }
 
-:where(#haesbbuiqy) .gt_from_md > :first-child {
+:where(#cviweddrhz) .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-:where(#haesbbuiqy) .gt_from_md > :last-child {
+:where(#cviweddrhz) .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-:where(#haesbbuiqy) .gt_row {
+:where(#cviweddrhz) .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -367,7 +362,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   overflow-x: hidden;
 }
 
-:where(#haesbbuiqy) .gt_stub {
+:where(#cviweddrhz) .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -380,7 +375,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#haesbbuiqy) .gt_stub_row_group {
+:where(#cviweddrhz) .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -394,11 +389,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: top;
 }
 
-:where(#haesbbuiqy) .gt_row_group_first td {
+:where(#cviweddrhz) .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-:where(#haesbbuiqy) .gt_summary_row {
+:where(#cviweddrhz) .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -408,16 +403,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#haesbbuiqy) .gt_first_summary_row {
+:where(#cviweddrhz) .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_first_summary_row.thick {
+:where(#cviweddrhz) .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-:where(#haesbbuiqy) .gt_last_summary_row {
+:where(#cviweddrhz) .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -427,7 +422,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_grand_summary_row {
+:where(#cviweddrhz) .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -437,7 +432,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#haesbbuiqy) .gt_first_grand_summary_row {
+:where(#cviweddrhz) .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -447,11 +442,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-top-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_striped {
+:where(#cviweddrhz) .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-:where(#haesbbuiqy) .gt_table_body {
+:where(#cviweddrhz) .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -460,7 +455,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_footnotes {
+:where(#cviweddrhz) .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -474,7 +469,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_footnote {
+:where(#cviweddrhz) .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -483,7 +478,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#haesbbuiqy) .gt_sourcenotes {
+:where(#cviweddrhz) .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -497,7 +492,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#haesbbuiqy) .gt_sourcenote {
+:where(#cviweddrhz) .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -505,81 +500,74 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#haesbbuiqy) .gt_left {
+:where(#cviweddrhz) .gt_left {
   text-align: left;
 }
 
-:where(#haesbbuiqy) .gt_center {
+:where(#cviweddrhz) .gt_center {
   text-align: center;
 }
 
-:where(#haesbbuiqy) .gt_right {
+:where(#cviweddrhz) .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-:where(#haesbbuiqy) .gt_font_normal {
+:where(#cviweddrhz) .gt_font_normal {
   font-weight: normal;
 }
 
-:where(#haesbbuiqy) .gt_font_bold {
+:where(#cviweddrhz) .gt_font_bold {
   font-weight: bold;
 }
 
-:where(#haesbbuiqy) .gt_font_italic {
+:where(#cviweddrhz) .gt_font_italic {
   font-style: italic;
 }
 
-:where(#haesbbuiqy) .gt_super {
+:where(#cviweddrhz) .gt_super {
   font-size: 65%;
 }
 
-:where(#haesbbuiqy) .gt_two_val_uncert {
-  display: inline-block;
-  line-height: 1em;
-  text-align: right;
-  font-size: 60%;
-  vertical-align: -0.25em;
-  margin-left: 0.1em;
-}
-
-:where(#haesbbuiqy) .gt_footnote_marks {
+:where(#cviweddrhz) .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-:where(#haesbbuiqy) .gt_asterisk {
+:where(#cviweddrhz) .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-:where(#haesbbuiqy) .gt_slash_mark {
-  font-size: 0.7em;
-  line-height: 0.7em;
-  vertical-align: 0.15em;
+:where(#cviweddrhz) .gt_indent_1 {
+  text-indent: 5px;
 }
 
-:where(#haesbbuiqy) .gt_fraction_numerator {
-  font-size: 0.6em;
-  line-height: 0.6em;
-  vertical-align: 0.45em;
+:where(#cviweddrhz) .gt_indent_2 {
+  text-indent: 10px;
 }
 
-:where(#haesbbuiqy) .gt_fraction_denominator {
-  font-size: 0.6em;
-  line-height: 0.6em;
-  vertical-align: -0.05em;
+:where(#cviweddrhz) .gt_indent_3 {
+  text-indent: 15px;
+}
+
+:where(#cviweddrhz) .gt_indent_4 {
+  text-indent: 20px;
+}
+
+:where(#cviweddrhz) .gt_indent_5 {
+  text-indent: 25px;
 }
 </style>
 <table class="gt_table">
   
   <thead class="gt_col_headings">
     <tr>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Flow (m3s)</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Fraction</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Reach</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">Flow (m3s)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">Fraction</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col">Reach</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
@@ -608,28 +596,28 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </div>
 </div>
-<p>Gravel scaledown is summarized to a single flow to fraction of movement curve to represent the entire area of interest. This process is shown below as well as the output.</p>
+<p>Gravel scaledown is further summarized to a single flow to fraction of movement curve to represent the entire area of interest. This process is shown below as well as the output.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>gravel_size_scaledown_summarized <span class="ot">&lt;-</span> gravel_size_scaledown <span class="sc">|&gt;</span> </span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">flow_cfs =</span> flow_m3s <span class="sc">*</span> <span class="fl">35.315</span>,</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">flow_cfday =</span> flow_cfs <span class="sc">*</span> <span class="dv">86400</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(flow_cfs) <span class="sc">|&gt;</span> </span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_fraction =</span> <span class="fu">min</span>(fraction), </span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">avg_fraction =</span> <span class="fu">mean</span>(fraction),</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_fraction =</span> <span class="fu">max</span>(fraction)</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  ) </span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="fu">gt</span>(gravel_size_scaledown_summarized)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>gravel_size_scaledown_summarized <span class="ot">&lt;-</span> gravel_size_scaledown <span class="sc">|&gt;</span> </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">flow_cfs =</span> flow_m3s <span class="sc">*</span> <span class="fl">35.315</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">flow_cfday =</span> flow_cfs <span class="sc">*</span> <span class="dv">86400</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(flow_cfs) <span class="sc">|&gt;</span> </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_fraction =</span> <span class="fu">min</span>(fraction), </span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">avg_fraction =</span> <span class="fu">mean</span>(fraction),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_fraction =</span> <span class="fu">max</span>(fraction)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  ) </span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">gt</span>(gravel_size_scaledown_summarized)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 
-<div id="iloqovnvyl" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="cahzzninxd" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-:where(#iloqovnvyl) .gt_table {
+:where(#cahzzninxd) .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -654,7 +642,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-left-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_heading {
+:where(#cahzzninxd) .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -666,7 +654,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_title {
+:where(#cahzzninxd) .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -678,7 +666,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-width: 0;
 }
 
-:where(#iloqovnvyl) .gt_subtitle {
+:where(#cahzzninxd) .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -690,13 +678,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-top-width: 0;
 }
 
-:where(#iloqovnvyl) .gt_bottom_border {
+:where(#cahzzninxd) .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_col_headings {
+:where(#cahzzninxd) .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -711,7 +699,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_col_heading {
+:where(#cahzzninxd) .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -731,7 +719,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   overflow-x: hidden;
 }
 
-:where(#iloqovnvyl) .gt_column_spanner_outer {
+:where(#cahzzninxd) .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -743,15 +731,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 4px;
 }
 
-:where(#iloqovnvyl) .gt_column_spanner_outer:first-child {
+:where(#cahzzninxd) .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-:where(#iloqovnvyl) .gt_column_spanner_outer:last-child {
+:where(#cahzzninxd) .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-:where(#iloqovnvyl) .gt_column_spanner {
+:where(#cahzzninxd) .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -763,7 +751,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   width: 100%;
 }
 
-:where(#iloqovnvyl) .gt_group_heading {
+:where(#cahzzninxd) .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -788,7 +776,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: middle;
 }
 
-:where(#iloqovnvyl) .gt_empty_group_heading {
+:where(#cahzzninxd) .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -803,15 +791,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: middle;
 }
 
-:where(#iloqovnvyl) .gt_from_md > :first-child {
+:where(#cahzzninxd) .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-:where(#iloqovnvyl) .gt_from_md > :last-child {
+:where(#cahzzninxd) .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-:where(#iloqovnvyl) .gt_row {
+:where(#cahzzninxd) .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -830,7 +818,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   overflow-x: hidden;
 }
 
-:where(#iloqovnvyl) .gt_stub {
+:where(#cahzzninxd) .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -843,7 +831,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#iloqovnvyl) .gt_stub_row_group {
+:where(#cahzzninxd) .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -857,11 +845,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: top;
 }
 
-:where(#iloqovnvyl) .gt_row_group_first td {
+:where(#cahzzninxd) .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-:where(#iloqovnvyl) .gt_summary_row {
+:where(#cahzzninxd) .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -871,16 +859,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#iloqovnvyl) .gt_first_summary_row {
+:where(#cahzzninxd) .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_first_summary_row.thick {
+:where(#cahzzninxd) .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-:where(#iloqovnvyl) .gt_last_summary_row {
+:where(#cahzzninxd) .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -890,7 +878,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_grand_summary_row {
+:where(#cahzzninxd) .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -900,7 +888,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#iloqovnvyl) .gt_first_grand_summary_row {
+:where(#cahzzninxd) .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -910,11 +898,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-top-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_striped {
+:where(#cahzzninxd) .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-:where(#iloqovnvyl) .gt_table_body {
+:where(#cahzzninxd) .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -923,7 +911,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_footnotes {
+:where(#cahzzninxd) .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -937,7 +925,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_footnote {
+:where(#cahzzninxd) .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -946,7 +934,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#iloqovnvyl) .gt_sourcenotes {
+:where(#cahzzninxd) .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -960,7 +948,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#iloqovnvyl) .gt_sourcenote {
+:where(#cahzzninxd) .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -968,82 +956,75 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#iloqovnvyl) .gt_left {
+:where(#cahzzninxd) .gt_left {
   text-align: left;
 }
 
-:where(#iloqovnvyl) .gt_center {
+:where(#cahzzninxd) .gt_center {
   text-align: center;
 }
 
-:where(#iloqovnvyl) .gt_right {
+:where(#cahzzninxd) .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-:where(#iloqovnvyl) .gt_font_normal {
+:where(#cahzzninxd) .gt_font_normal {
   font-weight: normal;
 }
 
-:where(#iloqovnvyl) .gt_font_bold {
+:where(#cahzzninxd) .gt_font_bold {
   font-weight: bold;
 }
 
-:where(#iloqovnvyl) .gt_font_italic {
+:where(#cahzzninxd) .gt_font_italic {
   font-style: italic;
 }
 
-:where(#iloqovnvyl) .gt_super {
+:where(#cahzzninxd) .gt_super {
   font-size: 65%;
 }
 
-:where(#iloqovnvyl) .gt_two_val_uncert {
-  display: inline-block;
-  line-height: 1em;
-  text-align: right;
-  font-size: 60%;
-  vertical-align: -0.25em;
-  margin-left: 0.1em;
-}
-
-:where(#iloqovnvyl) .gt_footnote_marks {
+:where(#cahzzninxd) .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-:where(#iloqovnvyl) .gt_asterisk {
+:where(#cahzzninxd) .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-:where(#iloqovnvyl) .gt_slash_mark {
-  font-size: 0.7em;
-  line-height: 0.7em;
-  vertical-align: 0.15em;
+:where(#cahzzninxd) .gt_indent_1 {
+  text-indent: 5px;
 }
 
-:where(#iloqovnvyl) .gt_fraction_numerator {
-  font-size: 0.6em;
-  line-height: 0.6em;
-  vertical-align: 0.45em;
+:where(#cahzzninxd) .gt_indent_2 {
+  text-indent: 10px;
 }
 
-:where(#iloqovnvyl) .gt_fraction_denominator {
-  font-size: 0.6em;
-  line-height: 0.6em;
-  vertical-align: -0.05em;
+:where(#cahzzninxd) .gt_indent_3 {
+  text-indent: 15px;
+}
+
+:where(#cahzzninxd) .gt_indent_4 {
+  text-indent: 20px;
+}
+
+:where(#cahzzninxd) .gt_indent_5 {
+  text-indent: 25px;
 }
 </style>
 <table class="gt_table">
   
   <thead class="gt_col_headings">
     <tr>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">flow_cfs</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">min_fraction</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">avg_fraction</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">max_fraction</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">flow_cfs</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">min_fraction</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">avg_fraction</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">max_fraction</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
@@ -1091,27 +1072,18 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h3 class="anchored" data-anchor-id="flow-to-transport-curves">Flow to transport curves</h3>
 <p>Flow to sediment transport curves were created using an SRH2D model developed for the Upper Sacramento River.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>files_to_read <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">"data-raw/CrossSectionFluxes/SedimentRatingCurves/"</span>,</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                            <span class="at">pattern =</span> <span class="st">".txt"</span>,</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>rating_curves_by_rm <span class="ot">&lt;-</span> <span class="fu">map_df</span>(files_to_read, <span class="cf">function</span>(x) {</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  river_mile <span class="ot">&lt;-</span> <span class="fu">str_match</span>(x, <span class="st">"[0-9]+</span><span class="sc">\\</span><span class="st">.?[0-9]+"</span>)[,<span class="dv">1</span>]</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">read_tsv</span>(x, <span class="at">skip =</span> <span class="dv">1</span>, <span class="at">col_names =</span> <span class="fu">c</span>(<span class="st">"flow"</span>, <span class="st">"parker_qs"</span>, <span class="st">"wilcock_qs"</span>, <span class="st">"gaeuman_qs"</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">river_mile =</span> <span class="fu">as.numeric</span>(river_mile))</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+
 </div>
 <p>The raw data has the following format:</p>
 <div class="cell">
 <div class="cell-output-display">
 
-<div id="qzydamjolp" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="uolwadbayt" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-:where(#qzydamjolp) .gt_table {
+:where(#uolwadbayt) .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -1136,7 +1108,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-left-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_heading {
+:where(#uolwadbayt) .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -1148,7 +1120,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_title {
+:where(#uolwadbayt) .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -1160,7 +1132,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-width: 0;
 }
 
-:where(#qzydamjolp) .gt_subtitle {
+:where(#uolwadbayt) .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -1172,13 +1144,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-top-width: 0;
 }
 
-:where(#qzydamjolp) .gt_bottom_border {
+:where(#uolwadbayt) .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_col_headings {
+:where(#uolwadbayt) .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1193,7 +1165,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_col_heading {
+:where(#uolwadbayt) .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1213,7 +1185,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   overflow-x: hidden;
 }
 
-:where(#qzydamjolp) .gt_column_spanner_outer {
+:where(#uolwadbayt) .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1225,15 +1197,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 4px;
 }
 
-:where(#qzydamjolp) .gt_column_spanner_outer:first-child {
+:where(#uolwadbayt) .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-:where(#qzydamjolp) .gt_column_spanner_outer:last-child {
+:where(#uolwadbayt) .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-:where(#qzydamjolp) .gt_column_spanner {
+:where(#uolwadbayt) .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -1245,7 +1217,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   width: 100%;
 }
 
-:where(#qzydamjolp) .gt_group_heading {
+:where(#uolwadbayt) .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1270,7 +1242,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: middle;
 }
 
-:where(#qzydamjolp) .gt_empty_group_heading {
+:where(#uolwadbayt) .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -1285,15 +1257,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: middle;
 }
 
-:where(#qzydamjolp) .gt_from_md > :first-child {
+:where(#uolwadbayt) .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-:where(#qzydamjolp) .gt_from_md > :last-child {
+:where(#uolwadbayt) .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-:where(#qzydamjolp) .gt_row {
+:where(#uolwadbayt) .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1312,7 +1284,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   overflow-x: hidden;
 }
 
-:where(#qzydamjolp) .gt_stub {
+:where(#uolwadbayt) .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1325,7 +1297,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#qzydamjolp) .gt_stub_row_group {
+:where(#uolwadbayt) .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1339,11 +1311,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   vertical-align: top;
 }
 
-:where(#qzydamjolp) .gt_row_group_first td {
+:where(#uolwadbayt) .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-:where(#qzydamjolp) .gt_summary_row {
+:where(#uolwadbayt) .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1353,16 +1325,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#qzydamjolp) .gt_first_summary_row {
+:where(#uolwadbayt) .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_first_summary_row.thick {
+:where(#uolwadbayt) .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-:where(#qzydamjolp) .gt_last_summary_row {
+:where(#uolwadbayt) .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1372,7 +1344,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_grand_summary_row {
+:where(#uolwadbayt) .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1382,7 +1354,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#qzydamjolp) .gt_first_grand_summary_row {
+:where(#uolwadbayt) .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1392,11 +1364,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-top-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_striped {
+:where(#uolwadbayt) .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-:where(#qzydamjolp) .gt_table_body {
+:where(#uolwadbayt) .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1405,7 +1377,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-bottom-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_footnotes {
+:where(#uolwadbayt) .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1419,7 +1391,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_footnote {
+:where(#uolwadbayt) .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -1428,7 +1400,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#qzydamjolp) .gt_sourcenotes {
+:where(#uolwadbayt) .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1442,7 +1414,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   border-right-color: #D3D3D3;
 }
 
-:where(#qzydamjolp) .gt_sourcenote {
+:where(#uolwadbayt) .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1450,83 +1422,76 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   padding-right: 5px;
 }
 
-:where(#qzydamjolp) .gt_left {
+:where(#uolwadbayt) .gt_left {
   text-align: left;
 }
 
-:where(#qzydamjolp) .gt_center {
+:where(#uolwadbayt) .gt_center {
   text-align: center;
 }
 
-:where(#qzydamjolp) .gt_right {
+:where(#uolwadbayt) .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-:where(#qzydamjolp) .gt_font_normal {
+:where(#uolwadbayt) .gt_font_normal {
   font-weight: normal;
 }
 
-:where(#qzydamjolp) .gt_font_bold {
+:where(#uolwadbayt) .gt_font_bold {
   font-weight: bold;
 }
 
-:where(#qzydamjolp) .gt_font_italic {
+:where(#uolwadbayt) .gt_font_italic {
   font-style: italic;
 }
 
-:where(#qzydamjolp) .gt_super {
+:where(#uolwadbayt) .gt_super {
   font-size: 65%;
 }
 
-:where(#qzydamjolp) .gt_two_val_uncert {
-  display: inline-block;
-  line-height: 1em;
-  text-align: right;
-  font-size: 60%;
-  vertical-align: -0.25em;
-  margin-left: 0.1em;
-}
-
-:where(#qzydamjolp) .gt_footnote_marks {
+:where(#uolwadbayt) .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-:where(#qzydamjolp) .gt_asterisk {
+:where(#uolwadbayt) .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-:where(#qzydamjolp) .gt_slash_mark {
-  font-size: 0.7em;
-  line-height: 0.7em;
-  vertical-align: 0.15em;
+:where(#uolwadbayt) .gt_indent_1 {
+  text-indent: 5px;
 }
 
-:where(#qzydamjolp) .gt_fraction_numerator {
-  font-size: 0.6em;
-  line-height: 0.6em;
-  vertical-align: 0.45em;
+:where(#uolwadbayt) .gt_indent_2 {
+  text-indent: 10px;
 }
 
-:where(#qzydamjolp) .gt_fraction_denominator {
-  font-size: 0.6em;
-  line-height: 0.6em;
-  vertical-align: -0.05em;
+:where(#uolwadbayt) .gt_indent_3 {
+  text-indent: 15px;
+}
+
+:where(#uolwadbayt) .gt_indent_4 {
+  text-indent: 20px;
+}
+
+:where(#uolwadbayt) .gt_indent_5 {
+  text-indent: 25px;
 }
 </style>
 <table class="gt_table">
   
   <thead class="gt_col_headings">
     <tr>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Flow (cfs)</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Parker</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Wilcock</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Gaeuman</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">River Mile</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">Flow (cfs)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">Parker</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">Wilcock</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">Gaeuman</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">River Mile</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
@@ -1570,41 +1535,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h4 class="anchored" data-anchor-id="processing-transport-curves">Processing transport curves</h4>
 <p>Transport curves for 4 different <strong>models</strong> are provided, each of these is defined for set of flows and at a set of river mile locations. We compute a single curve from these by first extracting the minumum transport from each of the 4 curves at corresponding river mile and flow values. After this we summarize again, this time across all river miles. We end up with a single curve with shown below.</p>
 <p><em>Note: our choice choosing the minimum in the first summary above is somewhat arbitraty and can be easily updated</em></p>
-<div class="cell" data-hash="habitat-decay-analysis_cache/html/unnamed-chunk-5_2ab4ff5397f0d744bd1b4bb730fc6f12">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rating_curve <span class="ot">&lt;-</span> rating_curves_by_rm <span class="sc">|&gt;</span> </span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">flow_cms =</span> flow) <span class="sc">|&gt;</span> </span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(parker_qs<span class="sc">:</span>gaeuman_qs, <span class="at">names_to =</span> <span class="st">"curve"</span>, <span class="at">values_to =</span> <span class="st">"transport_m3_per_second"</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">flow_cfs =</span> <span class="fl">35.315</span> <span class="sc">*</span> flow_cms,</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">flow_cfd =</span> flow_cfs <span class="sc">*</span> <span class="dv">86400</span>, <span class="co"># cubic feet per day</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">transport_ft3_per_second =</span> <span class="fl">35.315</span> <span class="sc">*</span> transport_m3_per_second,</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">transport_ft3_per_day =</span> <span class="dv">86400</span> <span class="sc">*</span> transport_ft3_per_second <span class="co"># transport per day</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(flow_cfs, river_mile) <span class="sc">|&gt;</span> </span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_second_min =</span> <span class="fu">min</span>(transport_ft3_per_second), </span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_second_avg =</span> <span class="fu">mean</span>(transport_ft3_per_second),</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_second_max =</span> <span class="fu">max</span>(transport_ft3_per_second),    </span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_day_min =</span> <span class="fu">min</span>(transport_ft3_per_day), </span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_day_avg =</span> <span class="fu">mean</span>(transport_ft3_per_day),</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_day_max =</span> <span class="fu">max</span>(transport_ft3_per_day)</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(flow_cfs) <span class="sc">|&gt;</span> </span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_second_min =</span> <span class="fu">mean</span>(sed_ft3_per_second_min), </span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_second_avg =</span> <span class="fu">mean</span>(sed_ft3_per_second_avg),</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_second_max =</span> <span class="fu">mean</span>(sed_ft3_per_second_max),</span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_day_min =</span> <span class="fu">mean</span>(sed_ft3_per_day_min), </span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_day_avg =</span> <span class="fu">mean</span>(sed_ft3_per_day_avg),</span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">sed_ft3_per_day_max =</span> <span class="fu">mean</span>(sed_ft3_per_day_max),</span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">flow_cfd =</span> flow_cfs <span class="sc">*</span> <span class="dv">86400</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>`summarise()` has grouped output by 'flow_cfs'. You can override using the
-`.groups` argument.</code></pre>
-</div>
+<div class="cell" data-hash="habitat-decay-analysis_cache/html/unnamed-chunk-5_c0241869b22173a0be2b8575e8410496">
+
 </div>
 <p>This results in the following data:</p>
 <div class="cell">
@@ -1617,289 +1549,670 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h4 class="anchored" data-anchor-id="generalizing-the-relationship">Generalizing the relationship</h4>
 <p>We generalize the relationship above by making use of R’s <code>approxfun</code> function generator. The setup of this is shown here:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>flow_cfs_to_sed_transport_cfs <span class="ot">&lt;-</span> <span class="fu">approxfun</span>(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> rating_curve<span class="sc">$</span>flow_cfs, </span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> rating_curve<span class="sc">$</span>sed_ft3_per_second_min</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>flow_cfs_to_sed_transport_cfd <span class="ot">&lt;-</span> <span class="fu">approxfun</span>(</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> rating_curve<span class="sc">$</span>flow_cfs, </span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> rating_curve<span class="sc">$</span>sed_ft3_per_day_min</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>flow_cfs_to_sed_transport_cfs <span class="ot">&lt;-</span> <span class="fu">approxfun</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> rating_curve<span class="sc">$</span>flow_cfs, </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> rating_curve<span class="sc">$</span>sed_ft3_per_second_min</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>flow_cfs_to_sed_transport_cfd <span class="ot">&lt;-</span> <span class="fu">approxfun</span>(</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> rating_curve<span class="sc">$</span>flow_cfs, </span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> rating_curve<span class="sc">$</span>sed_ft3_per_day_min</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The two functions can be used to obtain a transport value given a flow value in cfs. R’s <code>approxfun</code> uses linear interpolation to calculate these.</p>
 </section>
 </section>
 <section id="flow-data" class="level3">
 <h3 class="anchored" data-anchor-id="flow-data">Flow Data</h3>
-<p>Ultimately we will use the flow data from the DSM package <code>DSMflow</code> to drive our decay values. However, to opti</p>
+<p>Ultimately we will use the flow data from the DSM package <code>DSMflow</code> to drive our decay values. However, we want to make sure that the flows that were used to develop these curves are reasonable close to those from the DSM to proceed in the process.</p>
+<p><em>TODO: emanuel to move old figures here</em></p>
 <div class="cell">
 
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>kwk_usgs <span class="ot">&lt;-</span> dataRetrieval<span class="sc">::</span><span class="fu">readNWISdv</span>(<span class="st">"11370500"</span>, <span class="at">parameterCd =</span> <span class="st">"00060"</span>, <span class="at">startDate =</span> <span class="st">"1980-01-01"</span>, </span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">endDate =</span> <span class="st">"2022-01-01"</span>) <span class="sc">|&gt;</span>  </span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  dataRetrieval<span class="sc">::</span><span class="fu">renameNWISColumns</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+
 </div>
 </section>
 </section>
 <section id="optimizations-and-scale-downs" class="level2">
 <h2 class="anchored" data-anchor-id="optimizations-and-scale-downs">Optimizations and scale-downs</h2>
-<section id="gravel-size-scaledown-1" class="level3">
-<h3 class="anchored" data-anchor-id="gravel-size-scaledown-1">Gravel Size Scaledown</h3>
-<p>There are number of “scale-downs” we peform to the transport curves to better match observed data. The first is based on size threshold. Given a flow we assume only a fraction of gravel is able to move based on its size. These data were processed in the <a href="#gravel-size-scaledown">Gravel Size Scaledown</a> section above. We use the average flow to fraction of movement curve across all reaches defined in the data to scale-down the transport curve.</p>
+<p>In this section we describe a series ot “scale-downs” performed to the transport curves in order to better represent known events, and domain expert observations.</p>
+<section id="gravel-size-scaledown" class="level3">
+<h3 class="anchored" data-anchor-id="gravel-size-scaledown">Gravel Size Scaledown</h3>
+<p>The first scale-down is based on a size threshold. Given a flow we assume only a fraction of gravel is able to move based on its size. This data was processed in the <a href="#gravel-size-scaledown">Gravel Size Scaledown</a> section above. We use the average flow to fraction of movement curve across all reaches defined in the data to scale-down the transport curve.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
 </section>
 <section id="sediment-in-motion-scaledown" class="level3">
 <h3 class="anchored" data-anchor-id="sediment-in-motion-scaledown">Sediment in Motion Scaledown</h3>
-<p>The second scaledown we perform is to account for sediment still in motion. To do this we carry out an optmization process that assumes full habitat amount on the first day of 2015. That is 254690.3 square meters. When converted to cubic feet for use alongside the sediment transport we assume 2 feet of depth and value becomes 5482973 cubid feet. Based on obverved data we anticpate this volume of habitat to have decayed to zero by April 1st of 2017. The objective function and process is shown below.</p>
+<p>The second scale-down we perform is to account for sediment still in motion. To do this we carry out an optimization process that assumes full habitat amount on the first day of 2015. That is 254690.3 square meters. When converted to cubic feet for use alongside the sediment transport we assume 2 feet of depth and value becomes 5482973 cubic feet. Based on observed data we anticipate this volume of habitat to have decayed to zero by April 1st of 2017. The objective function and process is shown below.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>objective_func <span class="ot">&lt;-</span> <span class="cf">function</span>(threshold) {</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># scale down the tranport curves to just the d50mm threshold of movement</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  scaled_sed_transport <span class="ot">&lt;-</span> rating_curve<span class="sc">$</span>sed_ft3_per_day_min <span class="sc">*</span> </span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    gravel_size_scaledown_summarized<span class="sc">$</span>avg_fraction</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># create an approxfun given a threshold of movement (this value will be searched by the optim function)</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  calib_sed_curve <span class="ot">&lt;-</span> <span class="fu">approxfun</span>(rating_curve<span class="sc">$</span>flow_cfs, </span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                         scaled_sed_transport <span class="sc">*</span> </span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>                           <span class="fu">rep</span>(threshold, </span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">length</span>(rating_curve<span class="sc">$</span>flow_cfs)))</span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert square meters to cubic feet, assume 2ft depth</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  starting_volume <span class="ot">&lt;-</span> (<span class="fl">254690.3</span> <span class="sc">*</span> <span class="fl">10.764</span>) <span class="sc">*</span> <span class="dv">2</span></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  calib_kwk_sed_transport <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">date =</span> kwk_usgs<span class="sc">$</span>Date, </span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">flow =</span> kwk_usgs<span class="sc">$</span>Flow, </span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">sediment_transport_f3_day =</span> <span class="fu">calib_sed_curve</span>(flow)</span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">sediment_transport_f3_day =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sediment_transport_f3_day), <span class="dv">0</span>, sediment_transport_f3_day))</span>
-<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>  calib_kwk_sed_transport_sim <span class="ot">&lt;-</span> calib_kwk_sed_transport <span class="sc">|&gt;</span> </span>
-<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(date <span class="sc">&gt;=</span> <span class="st">"2015-01-01"</span>, date <span class="sc">&lt;=</span> <span class="st">"2017-04-01"</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">sediment_transport_f3_day =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sediment_transport_f3_day), <span class="dv">0</span>, sediment_transport_f3_day), </span>
-<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>           <span class="at">sediment_transport_f3_day_accum =</span> <span class="fu">cumsum</span>(sediment_transport_f3_day),</span>
-<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>           <span class="at">current_vol =</span> starting_volume <span class="sc">-</span> sediment_transport_f3_day_accum)</span>
-<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  last_volume <span class="ot">&lt;-</span> calib_kwk_sed_transport_sim <span class="sc">|&gt;</span> <span class="fu">tail</span>(<span class="dv">1</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(current_vol)</span>
-<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># return absolute distance to zero</span></span>
-<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">abs</span>(last_volume <span class="sc">-</span> <span class="dv">0</span>))</span>
-<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a><span class="co"># We want to optimize the function by the threshold value that results</span></span>
-<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a><span class="co"># in the volumne nearest zero.</span></span>
-<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">optimise</span>(objective_func, <span class="at">interval =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="at">maximum =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>objective_func <span class="ot">&lt;-</span> <span class="cf">function</span>(threshold) {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># scale down the tranport curves to just the d50mm threshold of movement</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  scaled_sed_transport <span class="ot">&lt;-</span> rating_curve<span class="sc">$</span>sed_ft3_per_day_min <span class="sc">*</span> </span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    gravel_size_scaledown_summarized<span class="sc">$</span>avg_fraction</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># create an approxfun given a threshold of movement (this value will be searched by the optim function)</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  calib_sed_curve <span class="ot">&lt;-</span> <span class="fu">approxfun</span>(rating_curve<span class="sc">$</span>flow_cfs, </span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                         scaled_sed_transport <span class="sc">*</span> </span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                           <span class="fu">rep</span>(threshold, </span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">length</span>(rating_curve<span class="sc">$</span>flow_cfs)))</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert square meters to cubic feet, assume 2ft depth</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  starting_volume <span class="ot">&lt;-</span> (<span class="fl">254690.3</span> <span class="sc">*</span> <span class="fl">10.764</span>) <span class="sc">*</span> <span class="dv">2</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  calib_kwk_sed_transport <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">date =</span> kwk_usgs<span class="sc">$</span>Date, </span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">flow =</span> kwk_usgs<span class="sc">$</span>Flow, </span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">sediment_transport_f3_day =</span> <span class="fu">calib_sed_curve</span>(flow)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">sediment_transport_f3_day =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sediment_transport_f3_day), <span class="dv">0</span>, sediment_transport_f3_day))</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  calib_kwk_sed_transport_sim <span class="ot">&lt;-</span> calib_kwk_sed_transport <span class="sc">|&gt;</span> </span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(date <span class="sc">&gt;=</span> <span class="st">"2015-01-01"</span>, date <span class="sc">&lt;=</span> <span class="st">"2017-04-01"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">sediment_transport_f3_day =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sediment_transport_f3_day), <span class="dv">0</span>, sediment_transport_f3_day), </span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>           <span class="at">sediment_transport_f3_day_accum =</span> <span class="fu">cumsum</span>(sediment_transport_f3_day),</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>           <span class="at">current_vol =</span> starting_volume <span class="sc">-</span> sediment_transport_f3_day_accum)</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>  last_volume <span class="ot">&lt;-</span> calib_kwk_sed_transport_sim <span class="sc">|&gt;</span> <span class="fu">tail</span>(<span class="dv">1</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(current_vol)</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># return absolute distance to zero</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">abs</span>(last_volume <span class="sc">-</span> <span class="dv">0</span>))</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a><span class="co"># We want to optimize the function by the threshold value that results</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="co"># in the volumne nearest zero.</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">optimise</span>(objective_func, <span class="at">interval =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="at">maximum =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>flow_cfs_to_sed_cfd_calibrated <span class="ot">&lt;-</span> <span class="fu">approxfun</span>(</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> rating_curve<span class="sc">$</span>flow_cfs, </span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> rating_curve<span class="sc">$</span>sed_ft3_per_day_min <span class="sc">*</span> </span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    gravel_size_scaledown_summarized<span class="sc">$</span>avg_fraction <span class="sc">*</span> </span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rep</span>(result<span class="sc">$</span>minimum, </span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">length</span>(rating_curve<span class="sc">$</span>flow_cfs))</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>calibrated_kwk_sed_transport <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">date =</span> kwk_usgs<span class="sc">$</span>Date, </span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">flow =</span> kwk_usgs<span class="sc">$</span>Flow, </span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">sediment_transport_f3_day =</span> <span class="fu">flow_cfs_to_sed_cfd_calibrated</span>(flow)</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sediment_transport_f3_day =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sediment_transport_f3_day), <span class="dv">0</span>, sediment_transport_f3_day))</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>starting_volume <span class="ot">&lt;-</span> (<span class="fl">254690.3</span> <span class="sc">*</span> <span class="fl">10.764</span>) <span class="sc">*</span> <span class="dv">2</span></span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="co"># add 20000 tons </span></span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>kwk_sed_transport_sim <span class="ot">&lt;-</span> calibrated_kwk_sed_transport <span class="sc">|&gt;</span> </span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(date <span class="sc">&gt;=</span> <span class="st">"2015-01-01"</span>, date <span class="sc">&lt;=</span> <span class="st">"2017-04-01"</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sediment_transport_f3_day =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(sediment_transport_f3_day), <span class="dv">0</span>, sediment_transport_f3_day), </span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>         <span class="at">sediment_transport_f3_day_accum =</span> <span class="fu">cumsum</span>(sediment_transport_f3_day),</span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>         <span class="at">start_vol =</span> starting_volume,</span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>         <span class="at">current_vol =</span> start_vol <span class="sc">-</span> sediment_transport_f3_day_accum)</span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> kwk_sed_transport_sim <span class="sc">|&gt;</span> </span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span> </span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(date, current_vol)) <span class="sc">+</span> </span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">""</span>, <span class="at">y =</span> <span class="st">"Spawning Habitat Vol. (cubic feet)"</span>) <span class="sc">+</span> </span>
-<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> kwk_usgs <span class="sc">|&gt;</span> </span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Date <span class="sc">&gt;=</span> <span class="st">"2015-01-01"</span>, Date <span class="sc">&lt;=</span> <span class="st">"2017-04-01"</span>) <span class="sc">|&gt;</span> <span class="fu">ggplot</span>(<span class="fu">aes</span>(Date, Flow)) <span class="sc">+</span> <span class="fu">geom_line</span>() <span class="sc">+</span> </span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.arrange</span>(p2, p1, <span class="at">nrow =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="672"></p>
+<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 </section>
 <section id="augmentations-and-depositions" class="level3">
 <h3 class="anchored" data-anchor-id="augmentations-and-depositions">Augmentations and Depositions</h3>
-<p>The goal for this optimization process is to scale the curve so that we are meeting known</p>
+<p>The goal for this optimization process is to scale the curve so that we are meeting known annual decay after accounting for augmentations and depositions. This annual decay rate was obtained by consulting domain experts who have been working in the Upper Sacramento River for over 15 years. Based on input we expect to see on average about 1 acre of decay per year.</p>
+<section id="augmentation-data" class="level4">
+<h4 class="anchored" data-anchor-id="augmentation-data">Augmentation Data</h4>
+<p>Augmentation data was obtained from two sources</p>
+<ul>
+<li>John Hannon - Upper Sacramento River Augmentations <a href="#">source</a></li>
+<li>Stillwater - Sacramento River Ecological Flows Study <a href="#">source</a></li>
+</ul>
+<p>These two sources we combined and converted to acres, to produce the following:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># spawning habitat in Upper Sacramento for Fall Run</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>upsac_spawning_base <span class="ot">&lt;-</span> </span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  DSMhabitat<span class="sc">::</span>fr_spawn[<span class="st">"Upper Sacramento River"</span>,,] <span class="sc">|&gt;</span> </span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">month =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, </span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">month_label =</span> month.abb) <span class="sc">|&gt;</span> </span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">names_to =</span> <span class="st">"year"</span>, <span class="at">values_to =</span> <span class="st">"spawning_habitat"</span>, </span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>               <span class="st">`</span><span class="at">1979</span><span class="st">`</span><span class="sc">:</span><span class="st">`</span><span class="at">2000</span><span class="st">`</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="fu">as.numeric</span>(year), </span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">date =</span> lubridate<span class="sc">::</span><span class="fu">as_date</span>(<span class="fu">paste0</span>(year, <span class="st">"-"</span>, month, <span class="st">"-"</span>, <span class="fu">days_in_month</span>(month)))) <span class="sc">|&gt;</span> </span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(date) <span class="sc">|&gt;</span> </span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">year</span>(date) <span class="sc">&gt;=</span> <span class="dv">1979</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">spawning_acres =</span> spawning_habitat <span class="sc">/</span> <span class="dv">4047</span>)</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co"># flows for upper sacramento </span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>dsm_flows <span class="ot">&lt;-</span> DSMflow<span class="sc">::</span>flows_cfs <span class="sc">|&gt;</span> </span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(date, <span class="at">flow =</span> <span class="st">`</span><span class="at">Upper Sacramento River</span><span class="st">`</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">year</span>(date) <span class="sc">%in%</span> <span class="dv">1979</span><span class="sc">:</span><span class="dv">2000</span>)</span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate the daily decay by applying flows to the flow-&gt;sed func</span></span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>upper_sac_decay <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">date =</span> dsm_flows<span class="sc">$</span>date,</span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">decay_cfd =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(</span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>    (x <span class="ot">&lt;-</span> <span class="fu">flow_cfs_to_sed_cfd_calibrated</span>(dsm_flows<span class="sc">$</span>flow))), </span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>    <span class="dv">0</span>, x</span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>  ), </span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">decay_cfm =</span> decay_cfd <span class="sc">*</span> <span class="fu">days_in_month</span>(<span class="fu">month</span>(date)),</span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">decay_sqm =</span> decay_cfm <span class="sc">/</span> <span class="dv">2</span>, </span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">decay_acres_month =</span> decay_sqm <span class="sc">/</span> <span class="dv">43560</span></span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(dsm_flows)</span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>sac_augs <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/sacramento_river_gravel_augmentation_data.csv"</span>)</span>
-<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>aug_acres_fill <span class="ot">&lt;-</span> <span class="dv">5</span></span>
-<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>sac_aug_totals <span class="ot">&lt;-</span></span>
-<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>  sac_augs <span class="sc">|&gt;</span> </span>
-<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(date) <span class="sc">|&gt;</span> </span>
-<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">tons =</span> <span class="fu">sum</span>(tons)) <span class="sc">|&gt;</span> </span>
-<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">date =</span> <span class="fu">as_date</span>(<span class="fu">paste0</span>(date, <span class="st">"-01-31"</span>)),</span>
-<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">cubic_yard =</span> tons <span class="sc">/</span> <span class="fl">1.5</span>, </span>
-<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">cubic_feet =</span> cubic_yard <span class="sc">*</span> <span class="dv">27</span>,</span>
-<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">sq_feet =</span> cubic_feet <span class="sc">/</span> <span class="dv">2</span>, </span>
-<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">acres =</span> sq_feet <span class="sc">/</span> <span class="dv">43560</span></span>
-<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(date, tons, acres) <span class="sc">|&gt;</span> </span>
-<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(</span>
-<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(<span class="at">date =</span> <span class="fu">seq</span>(<span class="fu">as_date</span>(<span class="st">"1980-01-31"</span>), <span class="fu">as_date</span>(<span class="st">"1996-01-31"</span>), <span class="at">by=</span><span class="st">"1 year"</span>), </span>
-<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>           <span class="at">acres =</span> aug_acres_fill)</span>
-<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(date)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+
+<div id="hnkqbyfguy" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+:where(#hnkqbyfguy) .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+:where(#hnkqbyfguy) .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+:where(#hnkqbyfguy) .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+:where(#hnkqbyfguy) .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+:where(#hnkqbyfguy) .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+:where(#hnkqbyfguy) .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+:where(#hnkqbyfguy) .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+:where(#hnkqbyfguy) .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+:where(#hnkqbyfguy) .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+:where(#hnkqbyfguy) .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+:where(#hnkqbyfguy) .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+:where(#hnkqbyfguy) .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+:where(#hnkqbyfguy) .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+:where(#hnkqbyfguy) .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+:where(#hnkqbyfguy) .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+:where(#hnkqbyfguy) .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+:where(#hnkqbyfguy) .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+:where(#hnkqbyfguy) .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+:where(#hnkqbyfguy) .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+:where(#hnkqbyfguy) .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+:where(#hnkqbyfguy) .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+:where(#hnkqbyfguy) .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+:where(#hnkqbyfguy) .gt_left {
+  text-align: left;
+}
+
+:where(#hnkqbyfguy) .gt_center {
+  text-align: center;
+}
+
+:where(#hnkqbyfguy) .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+:where(#hnkqbyfguy) .gt_font_normal {
+  font-weight: normal;
+}
+
+:where(#hnkqbyfguy) .gt_font_bold {
+  font-weight: bold;
+}
+
+:where(#hnkqbyfguy) .gt_font_italic {
+  font-style: italic;
+}
+
+:where(#hnkqbyfguy) .gt_super {
+  font-size: 65%;
+}
+
+:where(#hnkqbyfguy) .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+:where(#hnkqbyfguy) .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+:where(#hnkqbyfguy) .gt_indent_1 {
+  text-indent: 5px;
+}
+
+:where(#hnkqbyfguy) .gt_indent_2 {
+  text-indent: 10px;
+}
+
+:where(#hnkqbyfguy) .gt_indent_3 {
+  text-indent: 15px;
+}
+
+:where(#hnkqbyfguy) .gt_indent_4 {
+  text-indent: 20px;
+}
+
+:where(#hnkqbyfguy) .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">date</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">acres</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_right">1978-01-31</td>
+<td class="gt_row gt_right">1.426869</td></tr>
+    <tr><td class="gt_row gt_right">1979-01-31</td>
+<td class="gt_row gt_right">2.695647</td></tr>
+    <tr><td class="gt_row gt_right">1988-01-31</td>
+<td class="gt_row gt_right">4.957558</td></tr>
+    <tr><td class="gt_row gt_right">1989-01-31</td>
+<td class="gt_row gt_right">2.480806</td></tr>
+    <tr><td class="gt_row gt_right">1990-01-31</td>
+<td class="gt_row gt_right">30.965483</td></tr>
+    <tr><td class="gt_row gt_right">1997-01-31</td>
+<td class="gt_row gt_right">6.404959</td></tr>
+    <tr><td class="gt_row gt_right">1998-01-31</td>
+<td class="gt_row gt_right">4.752066</td></tr>
+    <tr><td class="gt_row gt_right">1999-01-31</td>
+<td class="gt_row gt_right">5.165289</td></tr>
+    <tr><td class="gt_row gt_right">2000-01-31</td>
+<td class="gt_row gt_right">6.611570</td></tr>
+    <tr><td class="gt_row gt_right">2002-01-31</td>
+<td class="gt_row gt_right">3.099174</td></tr>
+    <tr><td class="gt_row gt_right">2003-01-31</td>
+<td class="gt_row gt_right">1.818182</td></tr>
+    <tr><td class="gt_row gt_right">2004-01-31</td>
+<td class="gt_row gt_right">1.756198</td></tr>
+    <tr><td class="gt_row gt_right">2005-01-31</td>
+<td class="gt_row gt_right">1.487603</td></tr>
+    <tr><td class="gt_row gt_right">2006-01-31</td>
+<td class="gt_row gt_right">1.239669</td></tr>
+    <tr><td class="gt_row gt_right">2007-01-31</td>
+<td class="gt_row gt_right">1.239669</td></tr>
+    <tr><td class="gt_row gt_right">2008-01-31</td>
+<td class="gt_row gt_right">1.714876</td></tr>
+    <tr><td class="gt_row gt_right">2009-01-31</td>
+<td class="gt_row gt_right">2.045455</td></tr>
+    <tr><td class="gt_row gt_right">2010-01-31</td>
+<td class="gt_row gt_right">1.136364</td></tr>
+    <tr><td class="gt_row gt_right">2011-01-31</td>
+<td class="gt_row gt_right">1.033058</td></tr>
+    <tr><td class="gt_row gt_right">2012-01-31</td>
+<td class="gt_row gt_right">3.099174</td></tr>
+    <tr><td class="gt_row gt_right">2013-01-31</td>
+<td class="gt_row gt_right">2.892562</td></tr>
+    <tr><td class="gt_row gt_right">2014-01-31</td>
+<td class="gt_row gt_right">0.000000</td></tr>
+    <tr><td class="gt_row gt_right">2015-01-31</td>
+<td class="gt_row gt_right">0.000000</td></tr>
+    <tr><td class="gt_row gt_right">2016-01-31</td>
+<td class="gt_row gt_right">6.611570</td></tr>
+    <tr><td class="gt_row gt_right">2017-01-31</td>
+<td class="gt_row gt_right">2.892562</td></tr>
+    <tr><td class="gt_row gt_right">2018-01-31</td>
+<td class="gt_row gt_right">0.000000</td></tr>
+    <tr><td class="gt_row gt_right">2019-01-31</td>
+<td class="gt_row gt_right">6.611570</td></tr>
+    <tr><td class="gt_row gt_right">2022-01-31</td>
+<td class="gt_row gt_right">4.132231</td></tr>
+  </tbody>
+  
+  
+</table>
 </div>
+</div>
+</div>
+</section>
+<section id="apply-decay-and-augmentations" class="level4">
+<h4 class="anchored" data-anchor-id="apply-decay-and-augmentations">Apply Decay and Augmentations</h4>
+<p>At this point we apply the decay curves (with threshold of movement and still-in motion scale-downs already applied) to the DSM Flows to calculate decay and add to this the observed augmentations.</p>
+<p>We can use two sources for flows, DSM flows (CALSIM) used in the DSM models 1980-2000 or known USGS flows 1980-2022.</p>
+<p><strong>DSM Flows</strong></p>
+<p>Average annual decay with final scale-down.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>start_hab_acres <span class="ot">&lt;-</span> <span class="fu">mean</span>(DSMhabitat<span class="sc">::</span>fr_spawn[<span class="st">"Upper Sacramento River"</span>,,]<span class="sc">/</span><span class="dv">4047</span>)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># get corresponding augs and decays </span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>decays <span class="ot">&lt;-</span> upper_sac_decay <span class="sc">|&gt;</span> <span class="fu">select</span>(date, decay_acres_month, flow)</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>augmentations <span class="ot">&lt;-</span> sac_aug_totals <span class="sc">|&gt;</span> <span class="fu">select</span>(date, <span class="at">aug_acres=</span>acres)</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>decays_and_augs <span class="ot">&lt;-</span> decays <span class="sc">|&gt;</span> </span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(augmentations, <span class="at">by=</span><span class="fu">c</span>(<span class="st">"date"</span><span class="ot">=</span><span class="st">"date"</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">aug_acres =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(aug_acres), <span class="dv">0</span>, aug_acres), </span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">aug_minus_decay =</span> aug_acres <span class="sc">-</span> decay_acres_month, </span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>         <span class="at">aug_minus_decay_scaled =</span> aug_minus_decay <span class="sc">*</span> .<span class="dv">01</span>,</span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">month =</span> <span class="fu">month</span>(date),</span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">year =</span> <span class="fu">year</span>(date))</span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="co"># how much decay on average per year?</span></span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>decays_and_augs <span class="sc">|&gt;</span> </span>
-<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(year) <span class="sc">|&gt;</span> </span>
-<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">avg_diff =</span> <span class="fu">mean</span>(aug_minus_decay), </span>
-<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">sum_loss =</span> <span class="fu">sum</span>(aug_minus_decay)</span>
-<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(sum_loss) <span class="sc">|&gt;</span> </span>
-<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -22.33703</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># what is the spawning habitat?</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>upsac_spawning_base <span class="sc">|&gt;</span> </span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(date, spawning_acres)) <span class="sc">+</span> <span class="fu">geom_line</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid" width="672"></p>
-</div>
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot of augmentation vs loss</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>decays_and_augs <span class="sc">|&gt;</span> </span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(date, aug_minus_decay)) <span class="sc">+</span> <span class="fu">geom_line</span>() <span class="sc">+</span> </span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Augmentation minus Decay (acres)"</span>, </span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Augmentation minus Decay"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-13-2.png" class="img-fluid" width="672"></p>
-</div>
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot of augmentation vs loss accumulated</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>decays_and_augs <span class="sc">|&gt;</span> </span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">accum_loss =</span> <span class="fu">cumsum</span>(aug_minus_decay)</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(date, accum_loss)) <span class="sc">+</span> <span class="fu">geom_line</span>() <span class="sc">+</span> </span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Augmentation minus Decay accumulation"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-13-3.png" class="img-fluid" width="672"></p>
-</div>
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>decays_and_augs <span class="sc">|&gt;</span> </span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">accum_loss =</span> <span class="fu">cumsum</span>(aug_minus_decay_scaled)</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(date, accum_loss)) <span class="sc">+</span> <span class="fu">geom_line</span>() <span class="sc">+</span> </span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Augmentation minus Decay accumulation"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-13-4.png" class="img-fluid" width="672"></p>
+<pre><code>[1] -1.17586</code></pre>
 </div>
 </div>
+<p>Accumulated decay</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>nodos_sed_in_out <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/sed-in-sed-out.csv"</span>, </span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>                             <span class="at">col_names =</span> <span class="fu">c</span>(<span class="st">"river_mile"</span>, <span class="st">"in_minus_out_tons_per_year"</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">cubic_yard =</span> in_minus_out_tons_per_year <span class="sc">/</span> <span class="fl">1.5</span>, </span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">cubic_feet =</span> cubic_yard <span class="sc">*</span> <span class="dv">27</span>,</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">sq_feet =</span> cubic_feet <span class="sc">/</span> <span class="dv">2</span>, </span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">in_minus_out_acres_per_year =</span> sq_feet <span class="sc">/</span> <span class="dv">43560</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(river_mile, in_minus_out_tons_per_year, in_minus_out_acres_per_year)</span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>nodos_sed_in_out <span class="sc">|&gt;</span> </span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>river_mile, <span class="at">y=</span>in_minus_out_acres_per_year)) <span class="sc">+</span></span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">x=</span>river_mile, <span class="at">xend=</span>river_mile, <span class="at">y=</span><span class="dv">0</span>, <span class="at">yend=</span>in_minus_out_acres_per_year)) <span class="sc">+</span></span>
-<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
-<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="dv">290</span>, <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">linetype=</span><span class="dv">2</span>) <span class="sc">+</span> </span>
-<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="dv">244</span>, <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">linetype=</span><span class="dv">2</span>) <span class="sc">+</span> </span>
-<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"River Mile"</span>, <span class="at">y =</span> <span class="st">"Sediment in - Sedimnet out (acres/year)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="672"></p>
 </div>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>nodos_sed_in_out <span class="sc">|&gt;</span> </span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(river_mile <span class="sc">&gt;=</span> <span class="dv">290</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(in_minus_out_acres_per_year) <span class="sc">|&gt;</span> </span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] -0.3131868</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>nodos_sed_in_out <span class="sc">|&gt;</span> </span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(river_mile <span class="sc">&lt;</span> <span class="dv">290</span>, river_mile <span class="sc">&gt;=</span> <span class="dv">244</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(in_minus_out_acres_per_year) <span class="sc">|&gt;</span> </span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>USGS Flows</strong></p>
+<p>Average annual decay with final scale-down.</p>
+<div class="cell">
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0.2342214</code></pre>
+<pre><code>[1] -1.151983</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(nodos_sed_in_out)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Accumulated decay</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="apply-decay-to-spawning-habitat" class="level4">
+<h4 class="anchored" data-anchor-id="apply-decay-to-spawning-habitat">Apply Decay to Spawning Habitat</h4>
+<p>Here we apply the final version of the curve to the spawning habitat used in the model.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="scaling-to-other-watersheds" class="level2">
+<h2 class="anchored" data-anchor-id="scaling-to-other-watersheds">Scaling To Other Watersheds</h2>
+<section id="comparing-usgs-vs-dsm-flows" class="level3">
+<h3 class="anchored" data-anchor-id="comparing-usgs-vs-dsm-flows">Comparing USGS vs DSM flows</h3>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-18-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>summary stats</p>
+<div class="cell">
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -14677.06  42832.29</code></pre>
+<pre><code># A tibble: 7,819 × 4
+   date        flow exceedance_p source
+   &lt;date&gt;     &lt;dbl&gt;        &lt;dbl&gt; &lt;chr&gt; 
+ 1 1986-04-30  7530          0.5 cdec  
+ 2 1986-09-20  7530          0.5 cdec  
+ 3 1986-09-21  7530          0.5 cdec  
+ 4 1986-09-22  7530          0.5 cdec  
+ 5 1991-09-03  7530          0.5 cdec  
+ 6 1992-06-12  7530          0.5 cdec  
+ 7 1992-07-15  7530          0.5 cdec  
+ 8 1993-05-07  7530          0.5 cdec  
+ 9 1998-10-10  7530          0.5 cdec  
+10 1999-01-31  7530          0.5 cdec  
+# … with 7,809 more rows</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 4
+  date        flow exceedance_p source
+  &lt;date&gt;     &lt;dbl&gt;        &lt;dbl&gt; &lt;chr&gt; 
+1 2000-02-15 40000       0.0147 cdec  </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="habitat-decay-analysis_files/figure-html/unnamed-chunk-20-2.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 </section>

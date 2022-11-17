@@ -1,23 +1,40 @@
 ---
 title: "Habitat Decay Analysis"
+execute: 
+  echo: false
+  message: false
+  warning: false
 format:
   html:
     toc: true
-    highlight-style: ayu
+    highlight-style: "gruvbox-dark"
+  docx: default
 editor_options: 
   chunk_output_type: console
 monofont: "Cascadia Mono"
-mainfont: "Lora"
+mainfont: "Spectral"
 backgroundcolor: "#faf8f6"
-
 ---
 
 ## Data Preperation
 
+This section outlines how data was wrangled for use in this analysis. 
+These section are referenced through out this document.
 
-### Gravel Size Scaledown
+
+### Gravel Size
+
+Gravel size data was obtained by digitizing the bar plot shown below
+from the [link to report](#). 
+
+![](assets/gravel-scaledown-source.png){fig-alt="Figure of source plot from which we digitized data"}
+
+The digitizing process was done using [Webplot Digitizer](#) and produced the following
+data.
+
 
 ```{r}
+#| echo: false
 #| warning: false
 #| message: false
 
@@ -36,11 +53,12 @@ gt(head(gravel_size_scaledown)) |>
              reach = "Reach")
 ```
 
-Gravel scaledown is summarized to a single flow to fraction of movement
+Gravel scaledown is further summarized to a single flow to fraction of movement
 curve to represent the entire area of interest. This process is shown below as
 well as the output.
  
 ```{r}
+#| echo: true
 gravel_size_scaledown_summarized <- gravel_size_scaledown |> 
   mutate(
     flow_cfs = flow_m3s * 35.315,
@@ -64,7 +82,7 @@ for the Upper Sacramento River.
 ```{r}
 #| message: false
 
-files_to_read <- list.files("data-raw/CrossSectionFluxes/SedimentRatingCurves/",
+files_to_read <- list.files("data-raw/CrossSectionFluxes/CrossSectionFluxes/SedimentRatingCurves",
                             pattern = ".txt",
                             full.names = TRUE)
 
@@ -80,7 +98,6 @@ rating_curves_by_rm <- map_df(files_to_read, function(x) {
 The raw data has the following format:
 
 ```{r}
-#| echo: false
 gt(rating_curves_by_rm %>% head(5)) |>  
   gt::cols_label(flow = "Flow (cfs)", 
                  parker_qs = "Parker", 
@@ -135,12 +152,29 @@ rating_curve <- rating_curves_by_rm |>
   ) |>
   ungroup() |> 
   mutate(flow_cfd = flow_cfs * 86400)
+
+rating_curve_for_calib <- rating_curve
+
+rating_curve <- rating_curve |> 
+  add_row(flow_cfs = 0,
+          sed_ft3_per_day_min = 0, 
+          sed_ft3_per_day_avg = 0, 
+          sed_ft3_per_day_max = 0, 
+          sed_ft3_per_second_min = 0, 
+          sed_ft3_per_second_avg = 0, 
+          sed_ft3_per_second_max = 0
+          )
+
+
+write_rds(rating_curve, "data/rating-curves-with-threshold-of-movement.rds")
 ```
 
 This results in the following data:
 
 ```{r}
 #| echo: false
+
+
 rating_curve %>% 
   pivot_longer(names_to = "curve", 
                values_to = "sediment_transport", 
@@ -159,22 +193,17 @@ rating_curve %>%
                          ))) %>% 
   ggplot(aes(flow_cfs, sediment_transport, color = curve_label)) + 
   geom_line(size = 1.5) + 
+  geom_point(size = 2.5) + 
   labs(x = "flow (cfs)", y = "Sediment Transport (cfs)", 
-       title = "Sediment Transport Rating Curve", 
+       title = "Sediment Transport Capacity Rating Curves", 
        subtitle = "Flow (cfs) to Transport (cfs)",
        color = NULL) + 
   theme_bw() + 
   theme(legend.position="bottom") 
 
-# rating_curve %>% 
-#   pivot_longer(names_to = "curve", 
-#                values_to = "sediment_transport", 
-#                sed_ft3_per_day_min:sed_ft3_per_day_max) %>% 
-#   ggplot(aes(flow_cfs, sediment_transport, color = curve)) + 
-#   geom_line(size=1.5) + 
-#   theme_bw() +
-#   theme(legend.position="bottom") + 
-#   labs(x = "flow (cfs)", y = "Sediment Transport (cfd)")
+
+
+
 ```
 
 
@@ -184,6 +213,7 @@ We generalize the relationship above by making use of R's `approxfun`
 function generator. The setup of this is shown here:
 
 ```{r}
+#| echo: true
 flow_cfs_to_sed_transport_cfs <- approxfun(
   x = rating_curve$flow_cfs, 
   y = rating_curve$sed_ft3_per_second_min
@@ -201,9 +231,11 @@ in cfs. R's `approxfun` uses linear interpolation to calculate these.
 ### Flow Data
 
 Ultimately we will use the flow data from the DSM package `DSMflow` to drive 
-our decay values. However, we want to mmake sure that the flows that were used
+our decay values. However, we want to make sure that the flows that were used
 to develop these curves are reasonable close to those from the DSM to proceed
 in the process.
+
+*TODO: emanuel to move old figures here*
 
 ```{r}
 #| echo: false
@@ -220,39 +252,47 @@ kwk_usgs <- dataRetrieval::readNWISdv("11370500", parameterCd = "00060", startDa
 
 ## Optimizations and scale-downs
 
+In this section we describe a series ot "scale-downs" performed to the transport curves in order to better represent known events, and domain expert observations.
 
 ### Gravel Size Scaledown 
 
-There are number of "scale-downs" we peform to the transport curves to better 
-match observed data. The first is based on size threshold. Given a flow we assume
-only a fraction of gravel is able to move based on its size. These data were processed
+The first scale-down is based on a size threshold. Given a flow we assume
+only a fraction of gravel is able to move based on its size. This data was processed
 in the [Gravel Size Scaledown](#gravel-size-scaledown) section above. We use the average 
 flow to fraction of movement curve across all reaches defined in the data to scale-down 
-the transport curve.
+the transport curve. 
+
+```{r}
+gravel_size_scaledown_summarized |> 
+  ggplot(aes(flow_cfs, avg_fraction)) + geom_point() + geom_line() + 
+  labs(x = "Flow (cfs)", y = "Fraction Moved")
+```
 
 
 ### Sediment in Motion Scaledown
 
-The second scaledown we perform is to account for sediment still in motion. 
-To do this we carry out an optmization process that assumes full habitat amount on the
+The second scale-down we perform is to account for sediment still in motion. 
+To do this we carry out an optimization process that assumes full habitat amount on the
 first day of 2015. That is 254690.3 square meters. When converted to cubic feet for
 use alongside the sediment transport we assume 2 feet of depth and value becomes
-5482973 cubid feet. Based on obverved data we anticpate this volume of habitat to
+5482973 cubic feet. Based on observed data we anticipate this volume of habitat to
 have decayed to zero by April 1st of 2017. The objective function and process 
 is shown below.
 
 ```{r}
+#| echo: true
+
 objective_func <- function(threshold) {
   
   # scale down the tranport curves to just the d50mm threshold of movement
-  scaled_sed_transport <- rating_curve$sed_ft3_per_day_min * 
+  scaled_sed_transport <- rating_curve_for_calib$sed_ft3_per_day_min * 
     gravel_size_scaledown_summarized$avg_fraction
   
   # create an approxfun given a threshold of movement (this value will be searched by the optim function)
-  calib_sed_curve <- approxfun(rating_curve$flow_cfs, 
+  calib_sed_curve <- approxfun(rating_curve_for_calib$flow_cfs, 
                          scaled_sed_transport * 
                            rep(threshold, 
-                               length(rating_curve$flow_cfs)))
+                               length(rating_curve_for_calib$flow_cfs)))
   
   # convert square meters to cubic feet, assume 2ft depth
   starting_volume <- (254690.3 * 10.764) * 2
@@ -329,9 +369,24 @@ grid.arrange(p2, p1, nrow = 2)
 ### Augmentations and Depositions
 
 The goal for this optimization process is to scale the curve so that we are meeting 
-known
+known annual decay after accounting for augmentations and depositions. This annual decay
+rate was obtained by consulting domain experts who have been working in the Upper
+Sacramento River for over 15 years. Based on input we expect to see on average about
+1 acre of decay per year.
 
-```{r}
+
+#### Augmentation Data
+
+Augmentation data was obtained from two sources 
+
+* John Hannon - Upper Sacramento River Augmentations [source](#)
+* Stillwater - Sacramento River Ecological Flows Study [source](#)
+
+These two sources we combined and converted to acres, to produce the 
+following:
+
+
+```{r Augmentations}
 #| warning: false
 #| message: false
 
@@ -349,11 +404,23 @@ upsac_spawning_base <-
   filter(year(date) >= 1979) |> 
   mutate(spawning_acres = spawning_habitat / 4047)
 
+# FLOWS -----------------------------------------
 # flows for upper sacramento 
-dsm_flows <- DSMflow::flows_cfs |> 
+dsm_flows <- DSMflow::flows_cfs$biop_2008_2009 |> 
   select(date, flow = `Upper Sacramento River`) |> 
   filter(year(date) %in% 1979:2000)
 
+# average flows across all period of record for kwk
+kwk_usgs_monthly <- kwk_usgs |>
+  group_by(year = year(Date), month = month(Date)) |>
+  summarise(
+    flow = mean(Flow)
+  ) |> ungroup() |> 
+  mutate(
+    date = lubridate::as_date(paste0(year, month, "-", days_in_month(month)))
+  )
+
+# # DECAY --------------------------------------
 # calculate the daily decay by applying flows to the flow->sed func
 upper_sac_decay <- tibble(
   date = dsm_flows$date,
@@ -363,15 +430,46 @@ upper_sac_decay <- tibble(
   ), 
   decay_cfm = decay_cfd * days_in_month(month(date)),
   decay_sqm = decay_cfm / 2, 
-  decay_acres_month = decay_sqm / 43560
-) |> 
-  left_join(dsm_flows)
+  decay_acres_month = decay_sqm / 43560, 
+  flow = dsm_flows$flow
+)
 
 
+upper_sac_decay_usgs <- tibble(
+  date = kwk_usgs_monthly$date,
+  decay_cfd = ifelse(is.na(
+    (x <- flow_cfs_to_sed_cfd_calibrated(kwk_usgs_monthly$flow))), 
+    0, x
+  ), 
+  decay_cfm = decay_cfd * days_in_month(month(date)),
+  decay_sqm = decay_cfm / 2, 
+  decay_acres_month = decay_sqm / 43560, 
+  flow = kwk_usgs_monthly$flow
+) 
+
+
+# AUGMENTATIONS -------------------------------------
 sac_augs <- read_csv("data/sacramento_river_gravel_augmentation_data.csv")
+stillwater_sac_augs <- readxl::read_excel("data/gravel-augmentations-stillwater-1978_2006.xlsx") |> 
+  mutate(vol_ft3 = volume_m3 * 35.315, 
+         area_ft2 = vol_ft3 / 2, 
+         acres = area_ft2 / 43560) |> 
+  select(site_name, river_mile, acres, year)
 
-aug_acres_fill <- 5
+# AUGMENTATIONS FILL ------------------------------
+# TODO change the fill value 
+aug_acres_fill <- 0
 
+stillwater_sac_augs_totals <- stillwater_sac_augs |> 
+  group_by(year) |>
+  summarise(
+    acres = sum(acres)
+  ) |> 
+  mutate(date = as_date(paste0(year, "-01-31"))) |> 
+  filter(year(date) < 1997) |> 
+  select(date, acres) |> 
+  mutate(source = "S")
+  
 
 sac_aug_totals <-
   sac_augs |> 
@@ -382,106 +480,471 @@ sac_aug_totals <-
     cubic_yard = tons / 1.5, 
     cubic_feet = cubic_yard * 27,
     sq_feet = cubic_feet / 2, 
-    acres = sq_feet / 43560
+    acres = sq_feet / 43560,
+    source = "H"
   ) |> 
-  select(date, tons, acres) |> 
-  bind_rows(
-    tibble(date = seq(as_date("1980-01-31"), as_date("1996-01-31"), by="1 year"), 
-           acres = aug_acres_fill)
-  ) |> 
-  arrange(date)
+  select(date, acres, source) |>  
+  bind_rows(stillwater_sac_augs_totals) |> 
+  arrange(date) |> 
+  filter(!is.na(acres))
+
+gt(sac_aug_totals |> select(-source))
 ```
 
+#### Apply Decay and Augmentations
+
+At this point we apply the decay curves (with threshold of movement and still-in motion 
+scale-downs already applied) to the DSM Flows to calculate decay and add to this the 
+observed augmentations. 
+
+We can use two sources for flows, DSM flows (CALSIM) used in the DSM models 1980-2000 or known 
+USGS flows 1980-2022.
+
+**DSM Flows**
+
+Average annual decay with final scale-down.
+
 ```{r}
-#| warning: false
-#| message: false
-start_hab_acres <- mean(DSMhabitat::fr_spawn["Upper Sacramento River",,]/4047)
-
-# get corresponding augs and decays 
-decays <- upper_sac_decay |> select(date, decay_acres_month, flow)
-augmentations <- sac_aug_totals |> select(date, aug_acres=acres)
-
-
+decays <- upper_sac_decay |> select(date, decay_acres_month, flow) |> 
+  mutate(scaled_decay = decay_acres_month * .16)
+augmentations <- sac_aug_totals |> select(date, aug_acres=acres) 
 
 decays_and_augs <- decays |> 
   left_join(augmentations, by=c("date"="date")) |> 
   mutate(aug_acres = ifelse(is.na(aug_acres), 0, aug_acres), 
          aug_minus_decay = aug_acres - decay_acres_month, 
-         aug_minus_decay_scaled = aug_minus_decay * .01,
+         aug_minus_decay_scaled = aug_acres - scaled_decay,
          month = month(date),
-         year = year(date))
+         year = year(date)) 
 
+# how much decay on average per year non-scaled
+# decays_and_augs |> 
+#   group_by(year) |> 
+#   summarise(
+#     avg_diff = mean(aug_minus_decay), 
+#     sum_loss = sum(aug_minus_decay)
+#   ) |> 
+#   pull(sum_loss) |> 
+#   mean()
 
-# how much decay on average per year?
+# how much decay per year scaled?
 decays_and_augs |> 
   group_by(year) |> 
   summarise(
-    avg_diff = mean(aug_minus_decay), 
-    sum_loss = sum(aug_minus_decay)
+    avg_diff = mean(aug_minus_decay_scaled), 
+    sum_loss = sum(aug_minus_decay_scaled)
   ) |> 
   pull(sum_loss) |> 
   mean()
 
+```
 
-# what is the spawning habitat?
-upsac_spawning_base |> 
-  ggplot(aes(date, spawning_acres)) + geom_line() 
+Accumulated decay
 
-# plot of augmentation vs loss
-decays_and_augs |> 
-  ggplot(aes(date, aug_minus_decay)) + geom_line() + 
-  labs(y = "Augmentation minus Decay (acres)", 
-       title = "Augmentation minus Decay")
-
-# plot of augmentation vs loss accumulated
-decays_and_augs |> 
-  mutate(
-    accum_loss = cumsum(aug_minus_decay)
-  ) |> 
-  ggplot(aes(date, accum_loss)) + geom_line() + 
-  labs(y = "Augmentation minus Decay accumulation")
-
+```{r}
 decays_and_augs |> 
   mutate(
     accum_loss = cumsum(aug_minus_decay_scaled)
   ) |> 
   ggplot(aes(date, accum_loss)) + geom_line() + 
-  labs(y = "Augmentation minus Decay accumulation")
+  labs(y = "Augmentation minus Decay accumulation (acres)")
+```
+
+**USGS Flows**
+
+Average annual decay with final scale-down.
+
+```{r}
+decays_usgs <- upper_sac_decay_usgs |> select(date, decay_acres_month, flow) |> 
+  mutate(scaled_decay = decay_acres_month * .15)
+augmentations <- sac_aug_totals |> select(date, aug_acres=acres) 
+
+decays_and_augs_usgs <- decays_usgs |> 
+  left_join(augmentations, by=c("date"="date")) |> 
+  mutate(aug_acres = ifelse(is.na(aug_acres), 0, aug_acres), 
+         aug_minus_decay = aug_acres - decay_acres_month, 
+         aug_minus_decay_scaled = 0 - scaled_decay,
+         month = month(date),
+         year = year(date))
+
+# how much decay on average per year?
+# decays_and_augs_usgs |> 
+#   group_by(year) |> 
+#   summarise(
+#     avg_diff = mean(aug_minus_decay), 
+#     sum_loss = sum(aug_minus_decay)
+#   ) |> 
+#   pull(sum_loss) |> 
+#   mean()
+
+# how much decay on average per year scaled version?
+decays_and_augs_usgs |> 
+  group_by(year) |> 
+  summarise(
+    avg_diff = mean(aug_minus_decay_scaled), 
+    sum_loss = sum(aug_minus_decay_scaled)
+  ) |> 
+  pull(sum_loss) |> 
+  mean()
+```
+
+Accumulated decay
+
+```{r}
+decays_and_augs_usgs |> 
+  mutate(
+    accum_loss = cumsum(aug_minus_decay_scaled)
+  ) |> 
+  ggplot(aes(date, accum_loss)) + geom_line() +
+  labs(y = "Augmentation minus Decay accumulation (acres)")
+```
+
+
+
+#### Apply Decay to Spawning Habitat
+
+Here we apply the final version of the curve to the spawning habitat used
+in the model.
+
+```{r}
+start_hab_acres <- mean(DSMhabitat::fr_spawn["Upper Sacramento River",,]/4047)
+sac_habitat_acres <- DSMhabitat::fr_spawn["Upper Sacramento River",,]/4047
+
+# plot base habitat
+p1 <- upsac_spawning_base |> 
+  filter(month %in% 5:11) |>
+  ggplot(aes(date, spawning_acres)) + geom_col() + 
+  scale_y_continuous(breaks = NULL) + 
+  labs(y = "Habitat (acres)", x = "")
+
+
+# using usgs -----------
+habitat_change <- numeric(nrow(decays_and_augs_usgs))
+habitat_change[1] <- start_hab_acres + decays_and_augs_usgs$aug_minus_decay_scaled[1] 
+
+for (i in 2:length(habitat_change)) {
+  habitat_change[i] <- habitat_change[i-1] + decays_and_augs_usgs$aug_minus_decay_scaled[i]
+}
+
+decays_and_augs_usgs$habitat_change <- habitat_change
+
+decays_and_augs_usgs$decayed_habitat <- 
+  habitat_change * (upsac_spawning_base$spawning_acres / start_hab_acres)
+
+# using dsm flows
+habitat_change_dsm <- numeric(nrow(decays_and_augs))
+habitat_change_dsm[1] <- start_hab_acres + decays_and_augs$aug_minus_decay_scaled[1] 
+
+for (i in 2:length(habitat_change_dsm)) {
+  habitat_change_dsm[i] <- habitat_change_dsm[i-1] + decays_and_augs$aug_minus_decay_scaled[i]
+}
+
+decays_and_augs$habitat_change <- habitat_change_dsm
+
+decays_and_augs$decayed_habitat <- 
+  habitat_change_dsm * (upsac_spawning_base$spawning_acres / start_hab_acres)
+
+
+# TODO added these to keep non negattive and to end
+# where the sim spawning habitat started
+offset_for_nonzero_end <- 59.72109+64
+offset_for_nonzero_end <- 16.520033+64
+
+p2 <- decays_and_augs |> 
+  distinct(date, .keep_all = TRUE) |> 
+  filter(date <= "2000-12-31", month %in% 5:11) |> 
+  ggplot(aes(date, decayed_habitat + offset_for_nonzero_end)) + 
+  geom_col() + 
+  scale_y_continuous(breaks = NULL) + 
+  labs(y = "Habitat (acres)*", caption = "*offset to account for non-zero end", x = "")
+
+# p2 <- decays_and_augs_usgs |>
+#   distinct(date, .keep_all = TRUE) |>
+#   filter(date <= "2000-12-31") |>
+#   ggplot(aes(date, decayed_habitat)) + 
+#   geom_col() + 
+#   scale_y_continuous(breaks = NULL)
+
+
+gridExtra::grid.arrange(p1, p2, nrow = 2)
+```
+
+
+## Scaling To Other Watersheds
+
+
+### Comparing USGS vs DSM flows 
+
+```{r}
+american_dsm_flows <- DSMflow::flows_cfs |> transmute(date, flow = `American River`, source = "CALSIM")
+
+american_usgs_flows <- dataRetrieval::readNWISdv("11446500", parameterCd = "00060", startDate = "1922-01-01", endDate = "2022-09-01") |> 
+  dataRetrieval::renameNWISColumns() |> 
+  transmute(
+    date = Date, flow = Flow, source = "usgs"
+  )
+
+kwk_usgs <- dataRetrieval::readNWISdv("11370500", parameterCd = "00060", startDate = "1980-01-01", 
+                                      endDate = "2020-12-31") |>  
+  dataRetrieval::renameNWISColumns() |> 
+  as_tibble()
+
+
+dsm_flows <- DSMflow::flows_cfs |> 
+  # filter(year(date) %in% 1979:2000) |> 
+  pivot_longer(names_to = "watershed", values_to = "flow_cfs", -date) |> 
+  filter(watershed == "Upper Sacramento River") 
+
+dsm_cume_dist <- 
+  dsm_flows |> 
+  mutate(exceedance_p = cume_dist(-flow_cfs), 
+         source = "calsim") |> 
+  arrange(-exceedance_p) |> 
+  select(date, flow = flow_cfs, exceedance_p, source)
+
+kwk_cume_dist <-
+  kwk_usgs |> 
+  # group_by(year = year(Date), month = month(Date)) |> 
+  # summarise(
+  #   Flow = mean(Flow)
+  # ) |> ungroup() |> 
+  mutate(
+    # date = as_date(paste0(year, "-", month, "-01")), 
+                               exceedance_p = cume_dist(-Flow), source = "cdec"
+         ) |> 
+  arrange(-exceedance_p) |> 
+  select(date = Date, flow = Flow, exceedance_p, source)
+
+upsac_cume_dist <- 
+  bind_rows(dsm_cume_dist, kwk_cume_dist)
+
+upsac_cume_dist |> 
+  ggplot(aes(exceedance_p,flow, color = source)) + 
+  geom_line(size=1.2) +
+  facet_grid(vars(source)) +
+  scale_x_continuous(breaks = seq(0, 1, by=.1)) +
+  scale_color_discrete(guide="none") + 
+  theme(
+    panel.grid.major.x = element_line(color = "#777A7A"),
+    panel.grid.major.y = element_line(color = "#777A7A")
+  ) + 
+  labs(x = "Exceedance Probability", y = "Flow (cfs)")
+
+upsac_cume_dist |> 
+  ggplot(aes(exceedance_p,flow, color = source)) + 
+  geom_line(size=1.2) +
+  scale_x_continuous(breaks = seq(0, 1, by=.1)) +
+  scale_y_continuous(labels = scales::comma) + 
+  scale_color_discrete() + 
+  theme(
+    panel.grid.major.x = element_line(color = "#777A7A"),
+    panel.grid.major.y = element_line(color = "#777A7A")
+  ) + 
+  labs(x = "Exceedance Probability", y = "Flow (cfs)", color = "", 
+       caption = "CDEC is daily data, CALSIM is monthly")
+
+```
+
+summary stats
+
+
+```{r}
+upsac_cume_dist |> 
+  filter(exceedance_p >= .5) |> 
+  arrange(desc(flow))
+
+upsac_cume_dist |> 
+  filter(flow == 40000)
+```
+
+
+
+```{r}
+# american river cume dist
+american_dsm_cume_dist <- 
+  american_dsm_flows |> 
+  mutate(exceedance_p = cume_dist(-flow)) |> 
+  arrange(-exceedance_p) |> 
+  select(date, flow, exceedance_p, source)
+
+american_usgs_cume_dist <- 
+  american_usgs_flows |> 
+  mutate(exceedance_p = cume_dist(-flow)) |> 
+  arrange(-exceedance_p) |> 
+  select(date, flow, exceedance_p, source)
+
+american_cume_dist <- 
+  bind_rows(american_dsm_cume_dist, american_usgs_cume_dist)
+
+american_cume_dist |> 
+  ggplot(aes(exceedance_p,flow, color = source)) + 
+  geom_line(size=1.2) +
+  facet_grid(vars(source)) +
+  scale_x_continuous(breaks = seq(0, 1, by=.1)) +
+  scale_y_continuous(labels = scales::comma) + 
+  scale_color_discrete(guide="none") + 
+  theme(
+    panel.grid.major.x = element_line(color = "#777A7A"),
+    panel.grid.major.y = element_line(color = "#777A7A")
+  ) + 
+  labs(x = "Exceedance Probability", y = "Flow (cfs)")
+
+american_cume_dist |> 
+  ggplot(aes(exceedance_p,flow, color = source)) + 
+  geom_line(size=1.2) +
+  scale_x_continuous(breaks = seq(0, 1, by=.1)) +
+  scale_y_continuous(labels = scales::comma) + 
+  scale_color_discrete() + 
+  theme(
+    panel.grid.major.x = element_line(color = "#777A7A"),
+    panel.grid.major.y = element_line(color = "#777A7A")
+  ) + 
+  labs(x = "Exceedance Probability", y = "Flow (cfs)", color = "", 
+       caption = "CDEC is daily data, CALSIM is monthly")
+
+```
+
+
+
+```{r}
+upsac_exceedance <- upsac_cume_dist |> filter(source == "cdec")
+upsac_ex_to_flow <- approxfun(upsac_exceedance$exceedance_p, upsac_exceedance$flow, rule = 2)
+
+upsac_flow_to_ex <- approxfun(upsac_exceedance$flow, 
+                              upsac_exceedance$exceedance_p, 
+                              rule = 2)
+
+
+american_exceedence <- american_cume_dist |> 
+  filter(source == "CALSIM")
+
+american_ex_to_flow <- approxfun(american_exceedence$exceedance_p, 
+                           american_exceedence$flow, rule = 2)
+american_flow_to_ex <- approxfun(american_exceedence$flow, 
+                                 american_exceedence$exceedance_p, rule = 2)
+
+
+upsac_flow_to_ex(18000) #
+
+american_ex_to_flow(upsac_flow_to_ex(16000)) # subtract this value from the flow values of american, then use these as inputs 
+american_ex_to_flow(0.05134442) # subtract this value from the flow values of american, then use these as inputs 
+
+10000 - 7769.001
+
+american_flow_to_ex(16000)
+upsac_ex_to_flow(0.01837656)
+
+american_flow_to_ex(15000)
+
+upsac_flow_to_ex(40000)
+american_ex_to_flow(0.01741555)
+
+american_flow_to_ex(16604.28)
+upsac_ex_to_flow(0.01741556)
+
+upsac_flow_to_ex(20000)
+american_ex_to_flow(0.06486158)
+```
+
+
+
+
+```{r}
+test <- rating_curve |> select(flow_cfs, transport = sed_ft3_per_second_min)
+
+
+test <- test |> 
+  mutate(
+    upsac_ex = upsac_flow_to_ex(flow_cfs), 
+    american_ex = american_flow_to_ex(flow_cfs)
+  )
 ```
 
 
 ```{r}
-#| warning: false
-#| message: false
-
-nodos_sed_in_out <- read_csv("data/sed-in-sed-out.csv", 
-                             col_names = c("river_mile", "in_minus_out_tons_per_year")) |> 
-  mutate(
-    cubic_yard = in_minus_out_tons_per_year / 1.5, 
-    cubic_feet = cubic_yard * 27,
-    sq_feet = cubic_feet / 2, 
-    in_minus_out_acres_per_year = sq_feet / 43560
-  ) |> 
-  select(river_mile, in_minus_out_tons_per_year, in_minus_out_acres_per_year)
-
-nodos_sed_in_out |> 
-  ggplot(aes(x=river_mile, y=in_minus_out_acres_per_year)) +
-  geom_segment(aes(x=river_mile, xend=river_mile, y=0, yend=in_minus_out_acres_per_year)) +
-  geom_point() + 
-  geom_vline(xintercept = 290, color = "red", linetype=2) + 
-  geom_vline(xintercept = 244, color = "red", linetype=2) + 
-  labs(x = "River Mile", y = "Sediment in - Sedimnet out (acres/year)")
-
-nodos_sed_in_out |> 
-  filter(river_mile >= 290) |> 
-  pull(in_minus_out_acres_per_year) |> 
-  sum()
-
-nodos_sed_in_out |> 
-  filter(river_mile < 290, river_mile >= 244) |> 
-  pull(in_minus_out_acres_per_year) |> 
-  sum()
-
-
-range(nodos_sed_in_out)
+test |> 
+  head(6) |>
+  ggplot() + 
+  geom_line(aes(upsac_ex, transport, color = "Upper Sac")) +
+  geom_point(aes(upsac_ex, transport, color = "Upper Sac")) +
+  scale_x_reverse()
 ```
+
+```{r}
+tibble(
+  flow = rating_curve$flow_cfs,
+  decay = flow_cfs_to_sed_cfd_calibrated(rating_curve$flow_cfs) * .15
+) |> 
+  mutate(decay = decay / 86400) |> 
+  ggplot(aes(flow, decay)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(x = "Flow (cfs)", y = "Sediment Transport (cfs)", 
+       title = "Calibrated Flow to Sediment Transport Curve")
+
+```
+
+
+
+```{r}
+flow_cfs_to_sed_cfd_final <- approxfun(
+  x = rating_curve$flow_cfs, 
+  y = rating_curve$sed_ft3_per_day_avg * 
+    gravel_size_scaledown_summarized$avg_fraction * 
+    rep(result$minimum, 
+        length(rating_curve$flow_cfs)) * .15
+)
+
+upsac_flow_to_ex(18000) # 
+american_offset <- american_ex_to_flow(0.07919235) # subtract this value from the flow values of american, then use these as inputs 
+
+american_river_dsm_flows <- DSMflow::flows_cfs |> 
+  select(date, `American River`) |> 
+  mutate(flow = `American River` - american_offset) 
+
+
+american_river_dsm_flows |> 
+  filter(date >= "1979-01-01", date <= "2000-12-31") |> 
+  mutate(decay_cfd = flow_cfs_to_sed_cfd_final(flow), 
+         decay_cfd = ifelse(is.na(decay_cfd), 0, decay_cfd), 
+         decay_cfm = decay_cfd * days_in_month(month(date)),
+         decay_sqm = decay_cfm / 2, 
+         decay_acres_month = decay_sqm / 43560
+  ) |> 
+  ggplot(aes(date, decay_acres_month)) + geom_col()
+
+american_river_dsm_flows |> 
+  filter(date >= "1979-01-01", date <= "2000-12-31") |> 
+  mutate(decay_cfd = flow_cfs_to_sed_cfd_final(flow), 
+         decay_cfd = ifelse(is.na(decay_cfd), 0, decay_cfd), 
+         decay_cfm = decay_cfd * days_in_month(month(date)),
+         decay_sqm = decay_cfm / 2, 
+         decay_acres_month = decay_sqm / 43560, 
+         accum_decay_acres =  0 - cumsum(decay_acres_month)
+  ) |> 
+  ggplot(aes(date, accum_decay_acres)) + geom_line()
+
+american_river_dsm_decay <- american_river_dsm_flows |> 
+  filter(date >= "1979-01-01", date <= "2000-12-31") |> 
+  mutate(decay_cfd = flow_cfs_to_sed_cfd_final(flow), 
+         decay_cfd = ifelse(is.na(decay_cfd), 0, decay_cfd), 
+         decay_cfm = decay_cfd * days_in_month(month(date)),
+         decay_sqm = decay_cfm / 2, 
+         decay_acres_month = decay_sqm / 43560, 
+         accum_decay_acres =  0 - cumsum(decay_acres_month)
+  )
+
+american_river_dsm_decay |>
+  filter(decay_acres_month > 0) |>
+  group_by(year = year(date)) |> 
+  summarise(avg_decay = mean(decay_acres_month)) |> 
+  pull(avg_decay) |> mean()
+```
+
+
+
+
+
+
+
+
